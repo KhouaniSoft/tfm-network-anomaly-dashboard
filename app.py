@@ -53,9 +53,25 @@ def cargar_y_puntuar():
 
 test, score_norm = cargar_y_puntuar()
 
+# ---------------- Utilidades de formato (español) ----------------
+def es_num(x, dec=0):
+    """Número con formato español: punto para miles, coma para decimales."""
+    return f"{x:,.{dec}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def es_pct(x, dec=1):
+    return es_num(x * 100, dec) + " %"
+
+
+def estilo(fig, alto):
+    """Separadores españoles y leyenda visible en todos los gráficos."""
+    return fig.update_layout(height=alto, margin=dict(t=30, b=10), separators=",.",
+                             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
+
+
 # ---------------- Barra lateral: umbral y filtros ----------------
 st.sidebar.title("Configuración")
-pct = st.sidebar.slider("Umbral de decisión (percentil del score en tráfico normal)",
+pct = st.sidebar.slider("Umbral de decisión (percentil de la puntuación en tráfico normal)",
                         50, 99, 80,
                         help="Percentiles altos = menos alertas y menos falsas alarmas, "
                              "pero menor cobertura de ataques.")
@@ -63,8 +79,10 @@ umbral = float(np.percentile(score_norm, pct))
 test["pred"] = (test["score"] >= umbral).astype(int)
 
 st.sidebar.markdown("### Filtros")
-protos = st.sidebar.multiselect("Protocolo", sorted(test["proto"].unique()))
-servs = st.sidebar.multiselect("Servicio", sorted(test["service"].unique()))
+protos = st.sidebar.multiselect("Protocolo", sorted(test["proto"].unique()),
+                                placeholder="Todos los protocolos")
+servs = st.sidebar.multiselect("Servicio", sorted(test["service"].unique()),
+                               placeholder="Todos los servicios")
 solo_anom = st.sidebar.checkbox("Solo tráfico marcado como anómalo")
 
 vista = test.copy()
@@ -87,27 +105,29 @@ far = fp / (fp + tn) if fp + tn else 0.0
 recall = tp / (tp + fn) if tp + fn else 0.0
 gb = (test.sbytes + test.dbytes).sum() / 1e9
 
-c = st.columns(4)
-c[0].metric("Volumen total", f"{gb:,.2f} GB")
-c[1].metric("Conexiones", f"{len(test):,}")
-c[2].metric("Anomalías detectadas", f"{int(test.pred.sum()):,}",
-            f"{test.pred.mean()*100:.1f} % del tráfico")
-c[3].metric("Tasa de falsas alarmas", f"{far*100:.1f} %",
-            f"recall {recall*100:.1f} %", delta_color="inverse")
+c = st.columns(6)
+c[0].metric("Volumen total", es_num(gb, 2) + " GB")
+c[1].metric("Conexiones", es_num(len(test)))
+c[2].metric("Anomalías detectadas", es_num(int(test.pred.sum())))
+c[3].metric("Tráfico anómalo", es_pct(test.pred.mean()))
+c[4].metric("Tasa de falsas alarmas", es_pct(far))
+c[5].metric("Cobertura (recall)", es_pct(recall))
 
-# ---------------- Evolución temporal (ventanas secuenciales) ----------------
-st.subheader("Evolución de las anomalías")
+# ---------------- Anomalías por bloques de flujos ----------------
+st.subheader("Anomalías por bloques de flujos")
 ventana = 2000
+st.caption(f"La partición oficial de UNSW-NB15 no incluye marcas de tiempo: cada bloque agrupa "
+           f"{es_num(ventana)} flujos consecutivos según su orden en el fichero, no según el tiempo.")
 serie = (test.assign(bloque=np.arange(len(test)) // ventana)
              .groupby("bloque").agg(anomalias=("pred", "sum"),
                                     conexiones=("pred", "size")).reset_index())
 fig = go.Figure()
-fig.add_bar(x=serie.bloque, y=serie.conexiones, name="Conexiones", marker_color="#B7C7E8")
-fig.add_scatter(x=serie.bloque, y=serie.anomalias, name="Anomalías",
+fig.add_bar(x=serie.bloque, y=serie.conexiones, name="Flujos del bloque", marker_color="#B7C7E8")
+fig.add_scatter(x=serie.bloque, y=serie.anomalias, name="Anomalías detectadas",
                 mode="lines", line=dict(color="#C00000", width=2))
-fig.update_layout(height=280, margin=dict(t=10, b=10),
-                  xaxis_title=f"Ventana secuencial ({ventana} flujos)", yaxis_title="Flujos")
-st.plotly_chart(fig, width="stretch")
+fig.update_layout(xaxis_title=f"Bloque de {es_num(ventana)} flujos (orden del fichero)",
+                  yaxis_title="Flujos")
+st.plotly_chart(estilo(fig, 300), width="stretch")
 
 # ---------------- Distribuciones ----------------
 col1, col2 = st.columns(2)
@@ -115,51 +135,66 @@ anom = vista[vista.pred == 1]
 with col1:
     st.subheader("Anomalías por protocolo")
     d = anom.proto.value_counts().head(8).reset_index()
-    st.plotly_chart(px.bar(d, x="proto", y="count", color_discrete_sequence=["#C00000"])
-                    .update_layout(height=300, margin=dict(t=10)), width="stretch")
+    fig = px.bar(d, x="proto", y="count", color_discrete_sequence=["#C00000"],
+                 labels={"proto": "Protocolo", "count": "Flujos anómalos"})
+    st.plotly_chart(estilo(fig, 300), width="stretch")
 with col2:
     st.subheader("Anomalías por servicio")
     d = anom.service.value_counts().head(8).reset_index()
-    st.plotly_chart(px.bar(d, x="service", y="count", color_discrete_sequence=["#C00000"])
-                    .update_layout(height=300, margin=dict(t=10)), width="stretch")
+    fig = px.bar(d, x="service", y="count", color_discrete_sequence=["#C00000"],
+                 labels={"service": "Servicio", "count": "Flujos anómalos"})
+    st.plotly_chart(estilo(fig, 300), width="stretch")
 
 # ---------------- Comparación normal vs anómalo ----------------
-st.subheader("Comparación tráfico normal vs. anómalo")
-var = st.selectbox("Variable a comparar", ["dur", "spkts", "dpkts", "rate", "smean", "dmean"])
+st.subheader("Comparación entre tráfico clasificado como normal y como anómalo")
+st.caption("Clasificación según la predicción del modelo con el umbral seleccionado.")
+VARIABLES = {"dur": "Duración del flujo (dur)", "spkts": "Paquetes origen → destino (spkts)",
+             "dpkts": "Paquetes destino → origen (dpkts)", "rate": "Tasa de paquetes (rate)",
+             "smean": "Tamaño medio de paquete origen (smean)",
+             "dmean": "Tamaño medio de paquete destino (dmean)"}
+var = st.selectbox("Variable a comparar", list(VARIABLES), format_func=VARIABLES.get)
 fig = go.Figure()
-for etiqueta, color, nombre in [(0, "#4472C4", "Normal (pred.)"), (1, "#C00000", "Anómalo (pred.)")]:
+for etiqueta, color, nombre in [(0, "#4472C4", "Clasificado como normal"),
+                                (1, "#C00000", "Clasificado como anómalo")]:
     fig.add_histogram(x=np.log1p(test.loc[test.pred == etiqueta, var]), name=nombre,
                       opacity=0.6, marker_color=color, histnorm="probability density")
-fig.update_layout(barmode="overlay", height=300, margin=dict(t=10),
-                  xaxis_title=f"log(1+{var})", yaxis_title="Densidad")
-st.plotly_chart(fig, width="stretch")
+fig.update_layout(barmode="overlay", xaxis_title=f"log(1 + {var})", yaxis_title="Densidad")
+st.plotly_chart(estilo(fig, 320), width="stretch")
 
 # ---------------- Rendimiento del modelo ----------------
-st.subheader("Rendimiento del modelo (contra etiquetas reales del dataset)")
+st.subheader("Rendimiento del modelo (contra las etiquetas reales del conjunto de datos)")
 fpr, tpr, _ = roc_curve(test.label, test.score)
 auc = roc_auc_score(test.label, test.score)
 col1, col2 = st.columns([1, 1])
 with col1:
     fig = go.Figure()
-    fig.add_scatter(x=fpr, y=tpr, name=f"AUC = {auc:.3f}", line=dict(color="#C00000"))
-    fig.add_scatter(x=[0, 1], y=[0, 1], name="Azar", line=dict(dash="dash", color="gray"))
-    fig.add_scatter(x=[far], y=[recall], mode="markers", name=f"Umbral P{pct}",
+    fig.add_scatter(x=fpr, y=tpr, name=f"Curva ROC (AUC = {es_num(auc, 3)})",
+                    line=dict(color="#C00000"))
+    fig.add_scatter(x=[0, 1], y=[0, 1], name="Clasificador aleatorio",
+                    line=dict(dash="dash", color="gray"))
+    fig.add_scatter(x=[far], y=[recall], mode="markers", name=f"Umbral actual (P{pct})",
                     marker=dict(size=10, color="black"))
-    fig.update_layout(height=320, margin=dict(t=10),
-                      xaxis_title="Tasa de falsos positivos", yaxis_title="Recall")
-    st.plotly_chart(fig, width="stretch")
+    fig.update_layout(xaxis_title="Tasa de falsas alarmas", yaxis_title="Cobertura (recall)")
+    st.plotly_chart(estilo(fig, 340), width="stretch")
 with col2:
     st.dataframe(pd.DataFrame({
-        "Métrica": ["Precisión", "Recall", "F1", "FAR", "TP", "FP", "FN", "TN"],
-        "Valor": [f"{tp/(tp+fp):.3f}" if tp + fp else "—", f"{recall:.3f}",
-                  f"{2*tp/(2*tp+fp+fn):.3f}", f"{far:.3f}",
-                  f"{tp:,}", f"{fp:,}", f"{fn:,}", f"{tn:,}"]}),
+        "Métrica": ["Precisión", "Cobertura (recall)", "F1", "Tasa de falsas alarmas",
+                    "Verdaderos positivos", "Falsos positivos", "Falsos negativos",
+                    "Verdaderos negativos"],
+        "Valor": [es_num(tp / (tp + fp), 3) if tp + fp else "—", es_num(recall, 3),
+                  es_num(2 * tp / (2 * tp + fp + fn), 3), es_num(far, 3),
+                  es_num(tp), es_num(fp), es_num(fn), es_num(tn)]}),
         width="stretch", hide_index=True)
 
 # ---------------- Detalle ----------------
 st.subheader("Detalle de flujos (ordenado por puntuación de anomalía)")
 cols = ["proto", "service", "state", "dur", "spkts", "dpkts", "rate", "score", "pred", "attack_cat"]
-st.dataframe(vista.sort_values("score", ascending=False)[cols].head(500),
-             width="stretch", height=350)
+tabla = vista.sort_values("score", ascending=False)[cols].head(500).copy()
+tabla["pred"] = tabla["pred"].map({1: "Anómalo", 0: "Normal"})
+tabla = tabla.rename(columns={
+    "proto": "Protocolo", "service": "Servicio", "state": "Estado", "dur": "Duración (s)",
+    "spkts": "Paquetes orig.", "dpkts": "Paquetes dest.", "rate": "Tasa",
+    "score": "Puntuación", "pred": "Predicción", "attack_cat": "Familia real"})
+st.dataframe(tabla, width="stretch", height=350)
 st.caption("Prueba de concepto académica. Las alertas requieren verificación humana: "
-           f"con el umbral actual, la tasa de falsas alarmas es del {far*100:.1f} %.")
+           f"con el umbral actual, la tasa de falsas alarmas es del {es_pct(far)}.")
