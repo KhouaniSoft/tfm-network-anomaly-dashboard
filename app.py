@@ -64,8 +64,9 @@ def es_pct(x, dec=1):
 
 
 def estilo(fig, alto):
-    """Separadores españoles y leyenda visible en todos los gráficos."""
+    """Separadores españoles, números completos y leyenda visible en todos los gráficos."""
     return fig.update_layout(height=alto, margin=dict(t=30, b=10), separators=",.",
+                             yaxis_tickformat=",~r",
                              legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
 
 
@@ -195,6 +196,8 @@ tabla = tabla.rename(columns={
     "proto": "Protocolo", "service": "Servicio", "state": "Estado", "dur": "Duración (s)",
     "spkts": "Paquetes orig.", "dpkts": "Paquetes dest.", "rate": "Tasa",
     "score": "Puntuación", "pred": "Predicción", "attack_cat": "Familia real"})
-st.dataframe(tabla, width="stretch", height=350)
+st.dataframe(tabla, width="stretch", height=350, column_config={
+    col: st.column_config.NumberColumn(col, format="localized")
+    for col in ["Duración (s)", "Paquetes orig.", "Paquetes dest.", "Tasa", "Puntuación"]})
 st.caption("Prueba de concepto académica. Las alertas requieren verificación humana: "
            f"con el umbral actual, la tasa de falsas alarmas es del {es_pct(far)}.")
