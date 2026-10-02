@@ -107,7 +107,7 @@ fig.add_scatter(x=serie.bloque, y=serie.anomalias, name="Anomalías",
                 mode="lines", line=dict(color="#C00000", width=2))
 fig.update_layout(height=280, margin=dict(t=10, b=10),
                   xaxis_title=f"Ventana secuencial ({ventana} flujos)", yaxis_title="Flujos")
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ---------------- Distribuciones ----------------
 col1, col2 = st.columns(2)
@@ -116,12 +116,12 @@ with col1:
     st.subheader("Anomalías por protocolo")
     d = anom.proto.value_counts().head(8).reset_index()
     st.plotly_chart(px.bar(d, x="proto", y="count", color_discrete_sequence=["#C00000"])
-                    .update_layout(height=300, margin=dict(t=10)), use_container_width=True)
+                    .update_layout(height=300, margin=dict(t=10)), width="stretch")
 with col2:
     st.subheader("Anomalías por servicio")
     d = anom.service.value_counts().head(8).reset_index()
     st.plotly_chart(px.bar(d, x="service", y="count", color_discrete_sequence=["#C00000"])
-                    .update_layout(height=300, margin=dict(t=10)), use_container_width=True)
+                    .update_layout(height=300, margin=dict(t=10)), width="stretch")
 
 # ---------------- Comparación normal vs anómalo ----------------
 st.subheader("Comparación tráfico normal vs. anómalo")
@@ -132,7 +132,7 @@ for etiqueta, color, nombre in [(0, "#4472C4", "Normal (pred.)"), (1, "#C00000",
                       opacity=0.6, marker_color=color, histnorm="probability density")
 fig.update_layout(barmode="overlay", height=300, margin=dict(t=10),
                   xaxis_title=f"log(1+{var})", yaxis_title="Densidad")
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ---------------- Rendimiento del modelo ----------------
 st.subheader("Rendimiento del modelo (contra etiquetas reales del dataset)")
@@ -147,19 +147,19 @@ with col1:
                     marker=dict(size=10, color="black"))
     fig.update_layout(height=320, margin=dict(t=10),
                       xaxis_title="Tasa de falsos positivos", yaxis_title="Recall")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 with col2:
     st.dataframe(pd.DataFrame({
         "Métrica": ["Precisión", "Recall", "F1", "FAR", "TP", "FP", "FN", "TN"],
         "Valor": [f"{tp/(tp+fp):.3f}" if tp + fp else "—", f"{recall:.3f}",
                   f"{2*tp/(2*tp+fp+fn):.3f}", f"{far:.3f}",
                   f"{tp:,}", f"{fp:,}", f"{fn:,}", f"{tn:,}"]}),
-        use_container_width=True, hide_index=True)
+        width="stretch", hide_index=True)
 
 # ---------------- Detalle ----------------
 st.subheader("Detalle de flujos (ordenado por puntuación de anomalía)")
 cols = ["proto", "service", "state", "dur", "spkts", "dpkts", "rate", "score", "pred", "attack_cat"]
 st.dataframe(vista.sort_values("score", ascending=False)[cols].head(500),
-             use_container_width=True, height=350)
+             width="stretch", height=350)
 st.caption("Prueba de concepto académica. Las alertas requieren verificación humana: "
            f"con el umbral actual, la tasa de falsas alarmas es del {far*100:.1f} %.")
