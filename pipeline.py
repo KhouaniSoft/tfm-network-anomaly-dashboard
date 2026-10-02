@@ -21,7 +21,8 @@ test = pd.read_csv("data/UNSW_NB15_testing-set.csv")
 # ---------- 1. EDA ----------
 OUT["shape_train"] = list(train.shape); OUT["shape_test"] = list(test.shape)
 OUT["nulls_train"] = int(train.isna().sum().sum()); OUT["nulls_test"] = int(test.isna().sum().sum())
-OUT["dups_train"] = int(train.duplicated().sum())
+OUT["dups_train"] = int(train.drop(columns=["id"]).duplicated().sum())  # sin "id", que es único por fila
+OUT["dups_train_pct"] = round(OUT["dups_train"] / len(train) * 100, 2)
 OUT["dtypes"] = train.dtypes.astype(str).value_counts().to_dict()
 OUT["label_dist_train"] = train["label"].value_counts().to_dict()
 OUT["label_dist_test"] = test["label"].value_counts().to_dict()
@@ -158,12 +159,13 @@ fpr, tpr, _ = roc_curve(yte, score_te)
 ax[0].plot(fpr, tpr, color="#C00000", lw=1.5, label=f"Isolation Forest (AUC = {auc:.3f})")
 ax[0].plot([0,1],[0,1],"--", color="gray", lw=1, label="Clasificador aleatorio")
 ax[0].set_xlabel("Tasa de falsos positivos"); ax[0].set_ylabel("Tasa de verdaderos positivos")
-ax[0].set_title("Curva ROC (conjunto de prueba)"); ax[0].legend(fontsize=8)
-ax[1].hist(score_te[yte==0], bins=80, alpha=0.65, label="Normal", color="#4472C4", density=True)
-ax[1].hist(score_te[yte==1], bins=80, alpha=0.65, label="Anómalo", color="#C00000", density=True)
+ax[0].set_title("Curva ROC (conjunto de prueba)"); ax[0].legend(fontsize=8, loc="lower right")
+n1, _, _ = ax[1].hist(score_te[yte==0], bins=80, alpha=0.65, label="Normal", color="#4472C4", density=True)
+n2, _, _ = ax[1].hist(score_te[yte==1], bins=80, alpha=0.65, label="Anómalo", color="#C00000", density=True)
 ax[1].axvline(thr, color="black", ls="--", lw=1, label=f"Umbral (P{best_pct})")
+ax[1].set_ylim(0, max(n1.max(), n2.max()) * 1.35)  # aire vertical para que la leyenda no tape las barras
 ax[1].set_xlabel("Puntuación de anomalía"); ax[1].set_ylabel("Densidad")
-ax[1].set_title("Distribución de puntuaciones por clase"); ax[1].legend(fontsize=8)
+ax[1].set_title("Distribución de puntuaciones por clase"); ax[1].legend(fontsize=8, loc="upper right", framealpha=0.95)
 plt.tight_layout(); plt.savefig("fig4_roc_scores.png", bbox_inches="tight"); plt.close()
 
 # Figura 5: matriz de confusion + recall por categoria

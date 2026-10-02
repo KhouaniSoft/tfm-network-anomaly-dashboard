@@ -1,0 +1,332 @@
+{
+  "shape_train": [
+    175341,
+    45
+  ],
+  "shape_test": [
+    82332,
+    45
+  ],
+  "nulls_train": 0,
+  "nulls_test": 0,
+  "dups_train": 67601,
+  "dups_train_pct": 38.55,
+  "dtypes": {
+    "int64": 30,
+    "float64": 11,
+    "str": 4
+  },
+  "label_dist_train": {
+    "1": 119341,
+    "0": 56000
+  },
+  "label_dist_test": {
+    "1": 45332,
+    "0": 37000
+  },
+  "attack_cat_train": {
+    "Normal": 56000,
+    "Generic": 40000,
+    "Exploits": 33393,
+    "Fuzzers": 18184,
+    "DoS": 12264,
+    "Reconnaissance": 10491,
+    "Analysis": 2000,
+    "Backdoor": 1746,
+    "Shellcode": 1133,
+    "Worms": 130
+  },
+  "attack_cat_test": {
+    "Normal": 37000,
+    "Generic": 18871,
+    "Exploits": 11132,
+    "Fuzzers": 6062,
+    "DoS": 4089,
+    "Reconnaissance": 3496,
+    "Analysis": 677,
+    "Backdoor": 583,
+    "Shellcode": 378,
+    "Worms": 44
+  },
+  "service_dash_pct": 53.70563644555466,
+  "n_proto": 133,
+  "n_service": 13,
+  "n_state": 9,
+  "desc_numeric": {
+    "dur": {
+      "mean": 1.359,
+      "std": 6.48,
+      "min": 0.0,
+      "50%": 0.002,
+      "max": 60.0
+    },
+    "spkts": {
+      "mean": 20.299,
+      "std": 136.888,
+      "min": 1.0,
+      "50%": 2.0,
+      "max": 9616.0
+    },
+    "dpkts": {
+      "mean": 18.97,
+      "std": 110.258,
+      "min": 0.0,
+      "50%": 2.0,
+      "max": 10974.0
+    },
+    "sbytes": {
+      "mean": 8844.844,
+      "std": 174765.644,
+      "min": 28.0,
+      "50%": 430.0,
+      "max": 12965233.0
+    },
+    "dbytes": {
+      "mean": 14928.919,
+      "std": 143654.218,
+      "min": 0.0,
+      "50%": 164.0,
+      "max": 14655550.0
+    },
+    "rate": {
+      "mean": 95406.187,
+      "std": 165400.978,
+      "min": 0.0,
+      "50%": 3225.807,
+      "max": 1000000.003
+    }
+  },
+  "skew": {
+    "dur": 7.5,
+    "sbytes": 45.3,
+    "dbytes": 39.76,
+    "spkts": 40.22,
+    "dpkts": 36.76
+  },
+  "shape_train_clean": [
+    107740,
+    44
+  ],
+  "drop_corr": [
+    "sbytes",
+    "dbytes",
+    "sloss",
+    "dloss",
+    "dwin",
+    "ct_ftp_cmd"
+  ],
+  "n_features_final": 36,
+  "features_final": [
+    "dur",
+    "spkts",
+    "dpkts",
+    "rate",
+    "sttl",
+    "dttl",
+    "sload",
+    "dload",
+    "sinpkt",
+    "dinpkt",
+    "sjit",
+    "djit",
+    "swin",
+    "stcpb",
+    "dtcpb",
+    "tcprtt",
+    "synack",
+    "ackdat",
+    "smean",
+    "dmean",
+    "trans_depth",
+    "response_body_len",
+    "ct_srv_src",
+    "ct_state_ttl",
+    "ct_dst_ltm",
+    "ct_src_dport_ltm",
+    "ct_dst_sport_ltm",
+    "ct_dst_src_ltm",
+    "is_ftp_login",
+    "ct_flw_http_mthd",
+    "ct_src_ltm",
+    "ct_srv_dst",
+    "is_sm_ips_ports",
+    "proto_freq",
+    "service_freq",
+    "state_freq"
+  ],
+  "skewed_transformed": [
+    "dur",
+    "spkts",
+    "dpkts",
+    "rate",
+    "sload",
+    "dload",
+    "sinpkt",
+    "dinpkt",
+    "sjit",
+    "djit",
+    "tcprtt",
+    "synack",
+    "ackdat",
+    "trans_depth",
+    "response_body_len",
+    "ct_srv_src",
+    "ct_dst_ltm",
+    "ct_src_dport_ltm",
+    "ct_dst_sport_ltm",
+    "ct_dst_src_ltm",
+    "is_ftp_login",
+    "ct_flw_http_mthd",
+    "ct_src_ltm",
+    "ct_srv_dst",
+    "is_sm_ips_ports"
+  ],
+  "contamination_sweep": {
+    "0.01": {
+      "precision": 0.9234,
+      "recall": 0.2171,
+      "f1": 0.3516
+    },
+    "0.02": {
+      "precision": 0.8508,
+      "recall": 0.2397,
+      "f1": 0.3741
+    },
+    "0.05": {
+      "precision": 0.8078,
+      "recall": 0.39,
+      "f1": 0.526
+    },
+    "0.1": {
+      "precision": 0.7859,
+      "recall": 0.6952,
+      "f1": 0.7377
+    },
+    "auto": {
+      "precision": 0.7612,
+      "recall": 0.823,
+      "f1": 0.7909
+    }
+  },
+  "roc_auc": 0.8257,
+  "threshold_sweep": {
+    "80": {
+      "thr": 0.4707,
+      "precision": 0.7346,
+      "recall": 0.8797,
+      "f1": 0.8006,
+      "fp": 14407,
+      "fn": 5455,
+      "far": 0.3894
+    },
+    "85": {
+      "thr": 0.4872,
+      "precision": 0.7605,
+      "recall": 0.834,
+      "f1": 0.7956,
+      "fp": 11904,
+      "fn": 7527,
+      "far": 0.3217
+    },
+    "90": {
+      "thr": 0.5144,
+      "precision": 0.7947,
+      "recall": 0.7101,
+      "f1": 0.75,
+      "fp": 8316,
+      "fn": 13141,
+      "far": 0.2248
+    },
+    "95": {
+      "thr": 0.558,
+      "precision": 0.8305,
+      "recall": 0.4162,
+      "f1": 0.5545,
+      "fp": 3852,
+      "fn": 26463,
+      "far": 0.1041
+    },
+    "99": {
+      "thr": 0.6103,
+      "precision": 0.9227,
+      "recall": 0.2187,
+      "f1": 0.3536,
+      "fp": 831,
+      "fn": 35417,
+      "far": 0.0225
+    }
+  },
+  "final": {
+    "pct": 80,
+    "threshold": 0.4707,
+    "tp": 39877,
+    "tn": 22593,
+    "fp": 14407,
+    "fn": 5455,
+    "precision": 0.7346,
+    "recall": 0.8797,
+    "f1": 0.8006,
+    "accuracy": 0.7588,
+    "far": 0.3894,
+    "fnr": 0.1203
+  },
+  "recall_por_categoria": {
+    "Generic": {
+      "n": 18871,
+      "recall": 0.9936
+    },
+    "DoS": {
+      "n": 4089,
+      "recall": 0.9472
+    },
+    "Backdoor": {
+      "n": 583,
+      "recall": 0.9383
+    },
+    "Analysis": {
+      "n": 677,
+      "recall": 0.9261
+    },
+    "Exploits": {
+      "n": 11132,
+      "recall": 0.8924
+    },
+    "Worms": {
+      "n": 44,
+      "recall": 0.8864
+    },
+    "Reconnaissance": {
+      "n": 3496,
+      "recall": 0.6287
+    },
+    "Fuzzers": {
+      "n": 6062,
+      "recall": 0.6107
+    },
+    "Shellcode": {
+      "n": 378,
+      "recall": 0.5476
+    }
+  },
+  "kpis": {
+    "volumen_total_GB": 1.75,
+    "conexiones_totales": 82332,
+    "anomalias_detectadas": 54284,
+    "pct_trafico_anomalo": 65.93,
+    "tasa_falsas_alarmas_pct": 38.94,
+    "top_proto_anom": {
+      "udp": 24949,
+      "tcp": 19516,
+      "unas": 3515,
+      "arp": 987,
+      "ospf": 676
+    },
+    "top_service_anom": {
+      "unknown": 25398,
+      "dns": 18378,
+      "http": 7130,
+      "smtp": 1226,
+      "ftp": 1159
+    }
+  }
+}
