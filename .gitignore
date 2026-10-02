@@ -1,0 +1,19 @@
+# Dataset (no se redistribuye — ver README)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Salidas regenerables (opcional: descomenta si no quieres versionarlas)
+# fig*.png
+# resultados.json
+
+# Sistema
+.DS_Store
+Thumbs.db
