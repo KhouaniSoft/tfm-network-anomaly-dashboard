@@ -12,6 +12,18 @@ from sklearn.metrics import (precision_score, recall_score, f1_score,
                              confusion_matrix, roc_auc_score, roc_curve)
 warnings.filterwarnings("ignore")
 plt.rcParams.update({"figure.dpi": 150, "font.size": 9, "font.family": "sans-serif"})
+from matplotlib.ticker import FuncFormatter
+
+def _es(x, pos=None):
+    """Formato español: punto de miles y coma decimal."""
+    if abs(x - round(x)) < 1e-9:
+        return f"{int(round(x)):,}".replace(",", ".")
+    return f"{x:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+ES = FuncFormatter(_es)
+def es_x(*axs):
+    for a in axs: a.xaxis.set_major_formatter(ES)
+def es_y(*axs):
+    for a in axs: a.yaxis.set_major_formatter(ES)
 RS = 42
 OUT = {}
 
@@ -38,18 +50,19 @@ OUT["skew"] = train[["dur","sbytes","dbytes","spkts","dpkts"]].skew().round(2).t
 # Figura 1: distribucion de clases y categorias de ataque
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.2))
 cats = train["attack_cat"].value_counts()
-ax[0].bar(["Normal","Anómalo"], [OUT["label_dist_train"][0], OUT["label_dist_train"][1]], color=["#4472C4","#C00000"])
-ax[0].set_title("Distribución de clases (entrenamiento)"); ax[0].set_ylabel("Registros")
+ax[0].bar(["Normal","Ataque"], [OUT["label_dist_train"][0], OUT["label_dist_train"][1]], color=["#4472C4","#C00000"])
+ax[0].set_title("Distribución de clases (entrenamiento)"); ax[0].set_ylabel("Registros"); es_y(ax[0])
 for i,v in enumerate([OUT["label_dist_train"][0], OUT["label_dist_train"][1]]): ax[0].text(i, v, f"{v:,}".replace(",","."), ha="center", va="bottom", fontsize=8)
 cats.plot(kind="barh", ax=ax[1], color="#4472C4"); ax[1].invert_yaxis()
-ax[1].set_title("Registros por categoría de ataque"); ax[1].set_xlabel("Registros")
+ax[1].set_title("Registros por categoría (entrenamiento)"); ax[1].set_xlabel("Registros"); ax[1].set_ylabel(""); es_x(ax[1])
 plt.tight_layout(); plt.savefig("fig1_clases.png", bbox_inches="tight"); plt.close()
 
 # Figura 2: distribuciones sesgadas (log)
-fig, ax = plt.subplots(1, 3, figsize=(9, 2.8))
+NOMBRES = {"dur": "Duración del flujo", "sbytes": "Bytes origen → destino", "rate": "Tasa de paquetes"}
+fig, ax = plt.subplots(1, 3, figsize=(9, 3.0))
 for a, col in zip(ax, ["dur","sbytes","rate"]):
     a.hist(np.log1p(train[col]), bins=60, color="#4472C4", edgecolor="none")
-    a.set_title(f"log(1+{col})"); a.set_ylabel("")
+    a.set_title(f"{NOMBRES[col]}\nlog(1 + {col})"); a.set_ylabel(""); es_x(a); es_y(a)
 ax[0].set_ylabel("Frecuencia")
 plt.tight_layout(); plt.savefig("fig2_distribuciones.png", bbox_inches="tight"); plt.close()
 
@@ -75,7 +88,7 @@ fig, ax = plt.subplots(figsize=(7.5, 6.5))
 im = ax.imshow(train[num_cols].corr(), cmap="RdBu_r", vmin=-1, vmax=1)
 ax.set_xticks(range(len(num_cols))); ax.set_xticklabels(num_cols, rotation=90, fontsize=6)
 ax.set_yticks(range(len(num_cols))); ax.set_yticklabels(num_cols, fontsize=6)
-fig.colorbar(im, shrink=0.8); ax.set_title("Matriz de correlación (Pearson) de variables numéricas")
+cb = fig.colorbar(im, shrink=0.8); cb.ax.yaxis.set_major_formatter(ES); ax.set_title("Matriz de correlación (Pearson) de variables numéricas")
 plt.tight_layout(); plt.savefig("fig3_correlacion.png", bbox_inches="tight"); plt.close()
 
 # Frequency encoding para categoricas (adecuado para arboles / IF)
@@ -156,16 +169,16 @@ OUT["recall_por_categoria"] = dict(sorted(rec_cat.items(), key=lambda x: -x[1]["
 # Figura 4: ROC + distribucion de scores
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.4))
 fpr, tpr, _ = roc_curve(yte, score_te)
-ax[0].plot(fpr, tpr, color="#C00000", lw=1.5, label=f"Isolation Forest (AUC = {auc:.3f})")
+ax[0].plot(fpr, tpr, color="#C00000", lw=1.5, label=f"Isolation Forest (AUC = {auc:.3f})".replace(".", ","))
 ax[0].plot([0,1],[0,1],"--", color="gray", lw=1, label="Clasificador aleatorio")
-ax[0].set_xlabel("Tasa de falsos positivos"); ax[0].set_ylabel("Tasa de verdaderos positivos")
+ax[0].set_xlabel("Tasa de falsas alarmas"); ax[0].set_ylabel("Cobertura (recall)"); es_x(ax[0]); es_y(ax[0])
 ax[0].set_title("Curva ROC (conjunto de prueba)"); ax[0].legend(fontsize=8, loc="lower right")
-n1, _, _ = ax[1].hist(score_te[yte==0], bins=80, alpha=0.65, label="Normal", color="#4472C4", density=True)
-n2, _, _ = ax[1].hist(score_te[yte==1], bins=80, alpha=0.65, label="Anómalo", color="#C00000", density=True)
+n1, _, _ = ax[1].hist(score_te[yte==0], bins=80, alpha=0.65, label="Normal (etiqueta real)", color="#4472C4", density=True)
+n2, _, _ = ax[1].hist(score_te[yte==1], bins=80, alpha=0.65, label="Ataque (etiqueta real)", color="#C00000", density=True)
 ax[1].axvline(thr, color="black", ls="--", lw=1, label=f"Umbral (P{best_pct})")
 ax[1].set_ylim(0, max(n1.max(), n2.max()) * 1.35)  # aire vertical para que la leyenda no tape las barras
-ax[1].set_xlabel("Puntuación de anomalía"); ax[1].set_ylabel("Densidad")
-ax[1].set_title("Distribución de puntuaciones por clase"); ax[1].legend(fontsize=8, loc="upper right", framealpha=0.95)
+ax[1].set_xlabel("Puntuación de anomalía"); ax[1].set_ylabel("Densidad"); es_x(ax[1]); es_y(ax[1])
+ax[1].set_title("Puntuaciones según la etiqueta real"); ax[1].legend(fontsize=8, loc="upper right", framealpha=0.95)
 plt.tight_layout(); plt.savefig("fig4_roc_scores.png", bbox_inches="tight"); plt.close()
 
 # Figura 5: matriz de confusion + recall por categoria
@@ -176,13 +189,13 @@ for i in range(2):
     for j in range(2):
         ax[0].text(j, i, f"{cm[i,j]:,}".replace(",","."), ha="center", va="center",
                    color="white" if cm[i,j] > cm.max()/2 else "black", fontsize=11)
-ax[0].set_xticks([0,1]); ax[0].set_xticklabels(["Pred. normal","Pred. anómalo"])
-ax[0].set_yticks([0,1]); ax[0].set_yticklabels(["Real normal","Real anómalo"])
-ax[0].set_title("Matriz de confusión (test)")
+ax[0].set_xticks([0,1]); ax[0].set_xticklabels(["Predicho normal","Predicho anómalo"])
+ax[0].set_yticks([0,1]); ax[0].set_yticklabels(["Real: normal","Real: ataque"])
+ax[0].set_title("Matriz de confusión (conjunto de prueba)")
 rc = OUT["recall_por_categoria"]
 ax[1].barh(list(rc.keys()), [v["recall"] for v in rc.values()], color="#4472C4")
-ax[1].invert_yaxis(); ax[1].set_xlim(0,1); ax[1].set_xlabel("Recall")
-ax[1].set_title("Recall por categoría de ataque")
+ax[1].invert_yaxis(); ax[1].set_xlim(0,1); ax[1].set_xlabel("Cobertura (recall)"); es_x(ax[1])
+ax[1].set_title("Cobertura por categoría de ataque")
 plt.tight_layout(); plt.savefig("fig5_confusion_categorias.png", bbox_inches="tight"); plt.close()
 
 # ---------- 4. KPIs ----------
@@ -201,9 +214,9 @@ OUT["kpis"] = {
 # Figura 6: KPIs de distribucion de anomalias (proto/servicio)
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.2))
 det[det.pred==1]["proto"].value_counts().head(6).plot(kind="bar", ax=ax[0], color="#C00000")
-ax[0].set_title("Anomalías detectadas por protocolo"); ax[0].set_ylabel("Conexiones"); ax[0].tick_params(axis="x", rotation=30)
+ax[0].set_title("Anomalías detectadas por protocolo"); ax[0].set_ylabel("Flujos anómalos"); ax[0].set_xlabel("Protocolo"); ax[0].tick_params(axis="x", rotation=30); es_y(ax[0])
 det[det.pred==1]["service"].value_counts().head(6).plot(kind="bar", ax=ax[1], color="#C00000")
-ax[1].set_title("Anomalías detectadas por servicio"); ax[1].tick_params(axis="x", rotation=30)
+ax[1].set_title("Anomalías detectadas por servicio"); ax[1].set_ylabel("Flujos anómalos"); ax[1].set_xlabel("Servicio"); ax[1].tick_params(axis="x", rotation=30); es_y(ax[1])
 plt.tight_layout(); plt.savefig("fig6_kpis.png", bbox_inches="tight"); plt.close()
 
 with open("resultados.json","w") as f:
