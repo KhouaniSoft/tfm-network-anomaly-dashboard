@@ -102,9 +102,9 @@ st.caption(f"La partición oficial de UNSW-NB15 no incluye marcas de tiempo: cad
            f"{es_num(ventana)} flujos consecutivos según su orden en el fichero, no según el tiempo.")
 serie = (test.assign(bloque=np.arange(len(test)) // ventana)
              .groupby("bloque").agg(anomalias=("pred", "sum"),
-                                    conexiones=("pred", "size")).reset_index())
+                                    flujos=("pred", "size")).reset_index())
 fig = go.Figure()
-fig.add_bar(x=serie.bloque, y=serie.conexiones, name="Flujos del bloque", marker_color="#B7C7E8")
+fig.add_bar(x=serie.bloque, y=serie.flujos, name="Flujos del bloque", marker_color="#B7C7E8")
 fig.add_scatter(x=serie.bloque, y=serie.anomalias, name="Anomalías detectadas",
                 mode="lines", line=dict(color="#C00000", width=2))
 fig.update_layout(xaxis_title=f"Bloque de {es_num(ventana)} flujos (orden del fichero)",
