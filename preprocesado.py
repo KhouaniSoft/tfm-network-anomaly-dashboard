@@ -103,8 +103,10 @@ def preparar_todo(ruta="data"):
     normales_tr = tr[tr.label == 0]
     prep = Preprocesado().ajustar(normales_tr)
     modelo = entrenar(prep.transformar(normales_tr))
+    # Validación: puntuar y fijar el umbral
     va = va.assign(score=puntuar(modelo, prep.transformar(va)))
-    test = test.assign(score=puntuar(modelo, prep.transformar(test)))
     umbral = umbral_por_far(va.loc[va.label == 0, "score"])
+    # Modelo y umbral congelados: solo ahora se puntúa la partición de prueba
+    test = test.assign(score=puntuar(modelo, prep.transformar(test)))
     return dict(train_raw=train_raw, dedup=dedup, tr=tr, va=va, test=test,
                 prep=prep, modelo=modelo, umbral=umbral)
