@@ -16,8 +16,8 @@ En desarrollo. Los resultados se publicarán en este documento a medida que se o
 
 ```
 .
-├── pipeline.py        # Proceso completo: análisis exploratorio, limpieza, modelo,
-│                      # evaluación, KPI y generación de figuras
+├── preprocesado.py    # Protocolo común: división, preprocesado, modelo y umbral
+├── pipeline.py        # Proceso completo: análisis exploratorio, evaluación, KPI y figuras
 ├── app.py             # Cuadro de mando interactivo (Streamlit + Plotly)
 ├── requirements.txt   # Dependencias con versiones fijadas
 └── data/              # (no incluida) Conjunto de datos UNSW-NB15 — ver instrucciones
@@ -78,8 +78,9 @@ La primera ejecución del cuadro de mando tarda unos minutos, porque entrena el 
 
 - **Proceso analítico:** CRISP-DM (comprensión del negocio y de los datos, preparación, modelado, evaluación y despliegue).
 - **Gestión del proyecto:** enfoque ágil adaptado a un trabajo individual; cada entrega parcial es una iteración.
-- **Modelo:** Isolation Forest entrenado exclusivamente con tráfico normal, sin ver ataques ni etiquetas, y evaluado sobre la partición oficial de prueba.
-- **Umbral de decisión:** definido como percentil de la puntuación de anomalía del tráfico normal y expuesto como control interactivo del cuadro de mando, para hacer visible el compromiso entre cobertura de detección y tasa de falsas alarmas.
+- **Protocolo experimental:** la partición oficial de entrenamiento se deduplica y se divide de forma estratificada en entrenamiento (80 %) y validación (20 %). La partición oficial de prueba se evalúa una sola vez.
+- **Modelo:** el preprocesado y el Isolation Forest se ajustan exclusivamente con el tráfico normal del subconjunto de entrenamiento, sin ver ataques ni etiquetas.
+- **Umbral de decisión:** fijado en validación con un criterio operativo (tasa de falsas alarmas no superior al 10 %), sin usar etiquetas de ataque. En el cuadro de mando se expone como control interactivo para explorar el compromiso entre cobertura de detección y falsas alarmas.
 
 ## Alcance
 
@@ -98,4 +99,4 @@ El conjunto de datos UNSW-NB15 es propiedad de sus autores (UNSW Canberra); su u
 
 ## Autoría
 
-Abdelouadoud Khouani · TFM dirigido por David Amorós Alcaraz · UOC
+KhouaniSoft · TFM dirigido por David Amorós Alcaraz · UOC

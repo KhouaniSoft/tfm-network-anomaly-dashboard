@@ -10,48 +10,25 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import RobustScaler
 from sklearn.metrics import roc_curve, roc_auc_score
+import preprocesado as pp
 
 st.set_page_config(page_title="Cuadro de mando · Tráfico de red", layout="wide")
-RS = 42
 
 
-@st.cache_data(show_spinner="Entrenando el modelo y puntuando el tráfico…")
+@st.cache_resource(show_spinner="Entrenando el modelo y puntuando el tráfico…")
 def cargar_y_puntuar():
-    train = pd.read_csv("data/UNSW_NB15_training-set.csv")
-    test = pd.read_csv("data/UNSW_NB15_testing-set.csv")
-    for df in (train, test):
-        df.drop(columns=["id"], inplace=True)
-        df["service"] = df["service"].replace("-", "unknown")
-    train = train.drop_duplicates().reset_index(drop=True)
-
-    num = [c for c in train.select_dtypes("number").columns if c != "label"]
-    corr = train[num].corr().abs()
-    upper = corr.where(np.triu(np.ones(corr.shape), 1).astype(bool))
-    num = [c for c in num if not any(upper[c] > 0.95)]
-    for c in ["proto", "service", "state"]:
-        f = train[c].value_counts(normalize=True)
-        train[c + "_freq"] = train[c].map(f)
-        test[c + "_freq"] = test[c].map(f).fillna(0.0)
-    feats = num + ["proto_freq", "service_freq", "state_freq"]
-    skewed = [c for c in num if abs(train[c].skew()) > 3]
-    Xtr, Xte = train[feats].copy(), test[feats].copy()
-    for c in skewed:
-        Xtr[c] = np.log1p(Xtr[c].clip(lower=0))
-        Xte[c] = np.log1p(Xte[c].clip(lower=0))
-    sc = RobustScaler().fit(Xtr)
-    Xtr_s, Xte_s = sc.transform(Xtr), sc.transform(Xte)
-
-    modelo = IsolationForest(n_estimators=300, max_samples=512,
-                             random_state=RS, n_jobs=-1).fit(Xtr_s[train.label == 0])
-    test["score"] = -modelo.score_samples(Xte_s)
-    score_normal_train = -modelo.score_samples(Xtr_s[train.label == 0])
-    return test, score_normal_train
+    """Mismo protocolo que pipeline.py: preprocesado y modelo ajustados solo con
+    tráfico normal de entrenamiento; umbral de referencia fijado en validación."""
+    d = pp.preparar_todo()
+    sc_val_normal = d["va"].loc[d["va"].label == 0, "score"].values
+    return d["test"], sc_val_normal
 
 
 test, score_norm = cargar_y_puntuar()
+test = test.copy()
+PCT_REF = int(round((1 - pp.OBJETIVO_FAR) * 100))   # percentil de referencia (P90)
+
 
 # ---------------- Utilidades de formato (español) ----------------
 def es_num(x, dec=0):
@@ -72,11 +49,13 @@ def estilo(fig, alto):
 
 # ---------------- Barra lateral: umbral y filtros ----------------
 st.sidebar.title("Configuración")
-pct = st.sidebar.slider("Umbral de decisión (percentil de la puntuación en tráfico normal)",
-                        50, 99, 80,
+pct = st.sidebar.slider("Umbral de decisión (percentil de la puntuación en tráfico normal de validación)",
+                        50, 99, PCT_REF,
                         help="Percentiles altos = menos alertas y menos falsas alarmas, "
                              "pero menor cobertura de ataques.")
 umbral = float(np.percentile(score_norm, pct))
+st.sidebar.caption(f"Umbral de referencia: P{PCT_REF}, fijado en validación para un objetivo "
+                   f"de falsas alarmas del {int(pp.OBJETIVO_FAR*100)} %.")
 test["pred"] = (test["score"] >= umbral).astype(int)
 
 st.sidebar.markdown("### Filtros")
@@ -108,9 +87,9 @@ gb = (test.sbytes + test.dbytes).sum() / 1e9
 
 c = st.columns(6)
 c[0].metric("Volumen total", es_num(gb, 2) + " GB")
-c[1].metric("Conexiones", es_num(len(test)))
-c[2].metric("Anomalías detectadas", es_num(int(test.pred.sum())))
-c[3].metric("Tráfico anómalo", es_pct(test.pred.mean()))
+c[1].metric("Flujos analizados", es_num(len(test)))
+c[2].metric("Flujos anómalos", es_num(int(test.pred.sum())))
+c[3].metric("Flujos anómalos (%)", es_pct(test.pred.mean()))
 c[4].metric("Tasa de falsas alarmas", es_pct(far))
 c[5].metric("Cobertura (recall)", es_pct(recall))
 
@@ -173,7 +152,7 @@ with col1:
                     line=dict(color="#C00000"))
     fig.add_scatter(x=[0, 1], y=[0, 1], name="Clasificador aleatorio",
                     line=dict(dash="dash", color="gray"))
-    fig.add_scatter(x=[far], y=[recall], mode="markers", name=f"Umbral actual (P{pct})",
+    fig.add_scatter(x=[far], y=[recall], mode="markers", name=f"Umbral seleccionado (P{pct})",
                     marker=dict(size=10, color="black"))
     fig.update_layout(xaxis_title="Tasa de falsas alarmas", yaxis_title="Cobertura (recall)")
     st.plotly_chart(estilo(fig, 340), width="stretch")

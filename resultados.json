@@ -11,11 +11,6 @@
   "nulls_test": 0,
   "dups_train": 67601,
   "dups_train_pct": 38.55,
-  "dtypes": {
-    "int64": 30,
-    "float64": 11,
-    "str": 4
-  },
   "label_dist_train": {
     "1": 119341,
     "0": 56000
@@ -48,7 +43,7 @@
     "Shellcode": 378,
     "Worms": 44
   },
-  "service_dash_pct": 53.70563644555466,
+  "service_dash_pct": 53.71,
   "n_proto": 133,
   "n_service": 13,
   "n_state": 9,
@@ -103,230 +98,268 @@
     "spkts": 40.22,
     "dpkts": 36.76
   },
-  "shape_train_clean": [
-    107740,
-    44
-  ],
-  "drop_corr": [
-    "sbytes",
-    "dbytes",
-    "sloss",
-    "dloss",
-    "dwin",
-    "ct_ftp_cmd"
-  ],
-  "n_features_final": 36,
-  "features_final": [
-    "dur",
-    "spkts",
-    "dpkts",
-    "rate",
-    "sttl",
-    "dttl",
-    "sload",
-    "dload",
-    "sinpkt",
-    "dinpkt",
-    "sjit",
-    "djit",
-    "swin",
-    "stcpb",
-    "dtcpb",
-    "tcprtt",
-    "synack",
-    "ackdat",
-    "smean",
-    "dmean",
-    "trans_depth",
-    "response_body_len",
-    "ct_srv_src",
-    "ct_state_ttl",
-    "ct_dst_ltm",
-    "ct_src_dport_ltm",
-    "ct_dst_sport_ltm",
-    "ct_dst_src_ltm",
-    "is_ftp_login",
-    "ct_flw_http_mthd",
-    "ct_src_ltm",
-    "ct_srv_dst",
-    "is_sm_ips_ports",
-    "proto_freq",
-    "service_freq",
-    "state_freq"
-  ],
-  "skewed_transformed": [
-    "dur",
-    "spkts",
-    "dpkts",
-    "rate",
-    "sload",
-    "dload",
-    "sinpkt",
-    "dinpkt",
-    "sjit",
-    "djit",
-    "tcprtt",
-    "synack",
-    "ackdat",
-    "trans_depth",
-    "response_body_len",
-    "ct_srv_src",
-    "ct_dst_ltm",
-    "ct_src_dport_ltm",
-    "ct_dst_sport_ltm",
-    "ct_dst_src_ltm",
-    "is_ftp_login",
-    "ct_flw_http_mthd",
-    "ct_src_ltm",
-    "ct_srv_dst",
-    "is_sm_ips_ports"
-  ],
-  "contamination_sweep": {
-    "0.01": {
-      "precision": 0.9234,
-      "recall": 0.2171,
-      "f1": 0.3516
+  "protocolo": {
+    "registros_tras_deduplicar": 107740,
+    "entrenamiento": {
+      "total": 86192,
+      "normales": 41512,
+      "ataques_no_usados": 44680
     },
-    "0.02": {
-      "precision": 0.8508,
-      "recall": 0.2397,
-      "f1": 0.3741
+    "validacion": {
+      "total": 21548,
+      "normales": 10378,
+      "ataques": 11170
     },
-    "0.05": {
-      "precision": 0.8078,
-      "recall": 0.39,
-      "f1": 0.526
+    "prueba": {
+      "total": 82332,
+      "normales": 37000,
+      "ataques": 45332
     },
-    "0.1": {
-      "precision": 0.7859,
-      "recall": 0.6952,
-      "f1": 0.7377
-    },
-    "auto": {
-      "precision": 0.7612,
-      "recall": 0.823,
-      "f1": 0.7909
-    }
+    "fraccion_validacion": 0.2,
+    "semilla": 42
   },
-  "roc_auc": 0.8257,
-  "threshold_sweep": {
+  "preprocesado": {
+    "ajustado_con": "tráfico normal del subconjunto de entrenamiento",
+    "constantes_en_normal": [],
+    "eliminadas_por_correlacion": [
+      "dpkts",
+      "dbytes",
+      "dloss",
+      "dwin",
+      "ct_ftp_cmd",
+      "is_sm_ips_ports"
+    ],
+    "transformadas_log": [
+      "dur",
+      "spkts",
+      "sbytes",
+      "rate",
+      "sload",
+      "sloss",
+      "sinpkt",
+      "dinpkt",
+      "sjit",
+      "djit",
+      "tcprtt",
+      "synack",
+      "ackdat",
+      "smean",
+      "response_body_len",
+      "ct_srv_src",
+      "ct_state_ttl",
+      "ct_src_dport_ltm",
+      "ct_dst_sport_ltm",
+      "ct_dst_src_ltm",
+      "is_ftp_login",
+      "ct_flw_http_mthd",
+      "ct_srv_dst"
+    ],
+    "n_variables_finales": 36,
+    "variables_finales": [
+      "dur",
+      "spkts",
+      "sbytes",
+      "rate",
+      "sttl",
+      "dttl",
+      "sload",
+      "dload",
+      "sloss",
+      "sinpkt",
+      "dinpkt",
+      "sjit",
+      "djit",
+      "swin",
+      "stcpb",
+      "dtcpb",
+      "tcprtt",
+      "synack",
+      "ackdat",
+      "smean",
+      "dmean",
+      "trans_depth",
+      "response_body_len",
+      "ct_srv_src",
+      "ct_state_ttl",
+      "ct_dst_ltm",
+      "ct_src_dport_ltm",
+      "ct_dst_sport_ltm",
+      "ct_dst_src_ltm",
+      "is_ftp_login",
+      "ct_flw_http_mthd",
+      "ct_src_ltm",
+      "ct_srv_dst",
+      "proto_freq",
+      "service_freq",
+      "state_freq"
+    ]
+  },
+  "validacion_barrido_umbral": {
     "80": {
-      "thr": 0.4707,
-      "precision": 0.7346,
-      "recall": 0.8797,
-      "f1": 0.8006,
-      "fp": 14407,
-      "fn": 5455,
-      "far": 0.3894
+      "thr": 0.4668,
+      "precision": 0.8042,
+      "recall": 0.7634,
+      "f1": 0.7833,
+      "fp": 2076,
+      "fn": 2643,
+      "far": 0.2
     },
     "85": {
-      "thr": 0.4872,
-      "precision": 0.7605,
-      "recall": 0.834,
-      "f1": 0.7956,
-      "fp": 11904,
-      "fn": 7527,
-      "far": 0.3217
+      "thr": 0.4824,
+      "precision": 0.8231,
+      "recall": 0.6485,
+      "f1": 0.7255,
+      "fp": 1557,
+      "fn": 3926,
+      "far": 0.15
     },
     "90": {
-      "thr": 0.5144,
-      "precision": 0.7947,
-      "recall": 0.7101,
-      "f1": 0.75,
-      "fp": 8316,
-      "fn": 13141,
-      "far": 0.2248
+      "thr": 0.5062,
+      "precision": 0.8333,
+      "recall": 0.4646,
+      "f1": 0.5966,
+      "fp": 1038,
+      "fn": 5980,
+      "far": 0.1
     },
     "95": {
-      "thr": 0.558,
-      "precision": 0.8305,
-      "recall": 0.4162,
-      "f1": 0.5545,
-      "fp": 3852,
-      "fn": 26463,
-      "far": 0.1041
+      "thr": 0.5428,
+      "precision": 0.7923,
+      "recall": 0.1773,
+      "f1": 0.2897,
+      "fp": 519,
+      "fn": 9190,
+      "far": 0.05
     },
     "99": {
-      "thr": 0.6103,
-      "precision": 0.9227,
-      "recall": 0.2187,
-      "f1": 0.3536,
-      "fp": 831,
-      "fn": 35417,
-      "far": 0.0225
+      "thr": 0.5907,
+      "precision": 0.8628,
+      "recall": 0.0585,
+      "f1": 0.1097,
+      "fp": 104,
+      "fn": 10516,
+      "far": 0.01
     }
   },
-  "final": {
-    "pct": 80,
-    "threshold": 0.4707,
-    "tp": 39877,
-    "tn": 22593,
-    "fp": 14407,
-    "fn": 5455,
-    "precision": 0.7346,
-    "recall": 0.8797,
-    "f1": 0.8006,
-    "accuracy": 0.7588,
-    "far": 0.3894,
-    "fnr": 0.1203
+  "validacion_contamination": {
+    "0.01": {
+      "precision": 0.8628,
+      "recall": 0.0563,
+      "f1": 0.1057,
+      "far": 0.0096
+    },
+    "0.02": {
+      "precision": 0.8512,
+      "recall": 0.0911,
+      "f1": 0.1646,
+      "far": 0.0172
+    },
+    "0.05": {
+      "precision": 0.7995,
+      "recall": 0.166,
+      "f1": 0.2749,
+      "far": 0.0448
+    },
+    "0.1": {
+      "precision": 0.8396,
+      "recall": 0.4666,
+      "f1": 0.5998,
+      "far": 0.096
+    },
+    "auto": {
+      "precision": 0.8267,
+      "recall": 0.6432,
+      "f1": 0.7235,
+      "far": 0.1451
+    }
   },
-  "recall_por_categoria": {
+  "umbral_elegido": {
+    "criterio": "tasa de falsas alarmas en validación <= 10%",
+    "objetivo_far": 0.1,
+    "umbral": 0.5062,
+    "metricas_validacion": {
+      "tp": 5190,
+      "tn": 9340,
+      "fp": 1038,
+      "fn": 5980,
+      "precision": 0.8333,
+      "recall": 0.4646,
+      "f1": 0.5966,
+      "accuracy": 0.6743,
+      "far": 0.1,
+      "fnr": 0.5354
+    }
+  },
+  "roc_auc_test": 0.8195,
+  "final_test": {
+    "tp": 30679,
+    "tn": 29018,
+    "fp": 7982,
+    "fn": 14653,
+    "precision": 0.7935,
+    "recall": 0.6768,
+    "f1": 0.7305,
+    "accuracy": 0.7251,
+    "far": 0.2157,
+    "fnr": 0.3232
+  },
+  "recall_por_categoria_test": {
     "Generic": {
       "n": 18871,
-      "recall": 0.9936
-    },
-    "DoS": {
-      "n": 4089,
-      "recall": 0.9472
+      "recall": 0.9583
     },
     "Backdoor": {
       "n": 583,
-      "recall": 0.9383
+      "recall": 0.8628
     },
     "Analysis": {
       "n": 677,
-      "recall": 0.9261
+      "recall": 0.7696
+    },
+    "DoS": {
+      "n": 4089,
+      "recall": 0.6292
     },
     "Exploits": {
       "n": 11132,
-      "recall": 0.8924
+      "recall": 0.5703
     },
     "Worms": {
       "n": 44,
-      "recall": 0.8864
-    },
-    "Reconnaissance": {
-      "n": 3496,
-      "recall": 0.6287
+      "recall": 0.5455
     },
     "Fuzzers": {
       "n": 6062,
-      "recall": 0.6107
+      "recall": 0.3504
+    },
+    "Reconnaissance": {
+      "n": 3496,
+      "recall": 0.1407
     },
     "Shellcode": {
       "n": 378,
-      "recall": 0.5476
+      "recall": 0.0238
     }
   },
-  "kpis": {
+  "kpis_test": {
     "volumen_total_GB": 1.75,
-    "conexiones_totales": 82332,
-    "anomalias_detectadas": 54284,
-    "pct_trafico_anomalo": 65.93,
-    "tasa_falsas_alarmas_pct": 38.94,
+    "flujos_analizados": 82332,
+    "flujos_anomalos": 38661,
+    "pct_flujos_anomalos": 46.96,
+    "tasa_falsas_alarmas_pct": 21.57,
     "top_proto_anom": {
-      "udp": 24949,
-      "tcp": 19516,
-      "unas": 3515,
+      "udp": 19522,
+      "tcp": 11476,
+      "unas": 2843,
       "arp": 987,
-      "ospf": 676
+      "ospf": 658
     },
     "top_service_anom": {
-      "unknown": 25398,
-      "dns": 18378,
-      "http": 7130,
-      "smtp": 1226,
-      "ftp": 1159
+      "dns": 17826,
+      "unknown": 14224,
+      "http": 4806,
+      "smtp": 813,
+      "ftp": 562
     }
   }
 }

@@ -1,21 +1,29 @@
 # -*- coding: utf-8 -*-
-"""Pipeline TFM: deteccion de anomalias en trafico de red (UNSW-NB15) con Isolation Forest."""
-import json, warnings
+"""Pipeline TFM: detección de anomalías en tráfico de red (UNSW-NB15) con Isolation Forest.
+
+Protocolo: entrenamiento (solo normal) -> validación (fijar umbral) -> prueba (una sola vez).
+Ver preprocesado.py para el detalle del preprocesado común con el cuadro de mando.
+"""
+import json
+import warnings
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import RobustScaler
 from sklearn.metrics import (precision_score, recall_score, f1_score,
                              confusion_matrix, roc_auc_score, roc_curve)
+import preprocesado as pp
+
 warnings.filterwarnings("ignore")
 plt.rcParams.update({"figure.dpi": 150, "font.size": 9, "font.family": "sans-serif"})
-from matplotlib.ticker import FuncFormatter
+OUT = {}
 
+
+# ---------- Formato español en los ejes numéricos ----------
 def _es(x, pos=None):
-    """Formato español: punto de miles y coma decimal."""
     if abs(x - round(x)) < 1e-9:
         return f"{int(round(x)):,}".replace(",", ".")
     return f"{x:.2f}".rstrip("0").rstrip(".").replace(".", ",")
@@ -24,201 +32,194 @@ def es_x(*axs):
     for a in axs: a.xaxis.set_major_formatter(ES)
 def es_y(*axs):
     for a in axs: a.yaxis.set_major_formatter(ES)
-RS = 42
-OUT = {}
 
-train = pd.read_csv("data/UNSW_NB15_training-set.csv")
-test = pd.read_csv("data/UNSW_NB15_testing-set.csv")
 
-# ---------- 1. EDA ----------
-OUT["shape_train"] = list(train.shape); OUT["shape_test"] = list(test.shape)
-OUT["nulls_train"] = int(train.isna().sum().sum()); OUT["nulls_test"] = int(test.isna().sum().sum())
-OUT["dups_train"] = int(train.drop(columns=["id"]).duplicated().sum())  # sin "id", que es único por fila
-OUT["dups_train_pct"] = round(OUT["dups_train"] / len(train) * 100, 2)
-OUT["dtypes"] = train.dtypes.astype(str).value_counts().to_dict()
-OUT["label_dist_train"] = train["label"].value_counts().to_dict()
-OUT["label_dist_test"] = test["label"].value_counts().to_dict()
-OUT["attack_cat_train"] = train["attack_cat"].value_counts().to_dict()
-OUT["attack_cat_test"] = test["attack_cat"].value_counts().to_dict()
-OUT["service_dash_pct"] = float((train["service"] == "-").mean() * 100)
-OUT["n_proto"] = int(train["proto"].nunique()); OUT["n_service"] = int(train["service"].nunique()); OUT["n_state"] = int(train["state"].nunique())
-desc = train[["dur","spkts","dpkts","sbytes","dbytes","rate"]].describe().T
-OUT["desc_numeric"] = desc[["mean","std","min","50%","max"]].round(3).to_dict("index")
-# skewness
-OUT["skew"] = train[["dur","sbytes","dbytes","spkts","dpkts"]].skew().round(2).to_dict()
+def metricas(y, pred):
+    tn, fp, fn, tp = confusion_matrix(y, pred, labels=[0, 1]).ravel()
+    return {"tp": int(tp), "tn": int(tn), "fp": int(fp), "fn": int(fn),
+            "precision": round(precision_score(y, pred, zero_division=0), 4),
+            "recall": round(recall_score(y, pred, zero_division=0), 4),
+            "f1": round(f1_score(y, pred, zero_division=0), 4),
+            "accuracy": round((tp + tn) / (tp + tn + fp + fn), 4),
+            "far": round(fp / (fp + tn), 4) if fp + tn else 0.0,
+            "fnr": round(fn / (fn + tp), 4) if fn + tp else 0.0}
 
-# Figura 1: distribucion de clases y categorias de ataque
+
+# ======================= 1. ANÁLISIS EXPLORATORIO (partición oficial completa) =======================
+train_raw, test_raw = pp.cargar()
+OUT["shape_train"] = list(train_raw.shape); OUT["shape_test"] = list(test_raw.shape)
+OUT["nulls_train"] = int(train_raw.isna().sum().sum()); OUT["nulls_test"] = int(test_raw.isna().sum().sum())
+OUT["dups_train"] = int(train_raw.drop(columns=["id"]).duplicated().sum())  # sin "id", único por fila
+OUT["dups_train_pct"] = round(OUT["dups_train"] / len(train_raw) * 100, 2)
+OUT["label_dist_train"] = train_raw["label"].value_counts().to_dict()
+OUT["label_dist_test"] = test_raw["label"].value_counts().to_dict()
+OUT["attack_cat_train"] = train_raw["attack_cat"].value_counts().to_dict()
+OUT["attack_cat_test"] = test_raw["attack_cat"].value_counts().to_dict()
+OUT["service_dash_pct"] = round(float((train_raw["service"] == "-").mean() * 100), 2)
+OUT["n_proto"] = int(train_raw["proto"].nunique()); OUT["n_service"] = int(train_raw["service"].nunique())
+OUT["n_state"] = int(train_raw["state"].nunique())
+OUT["desc_numeric"] = (train_raw[["dur", "spkts", "dpkts", "sbytes", "dbytes", "rate"]].describe().T
+                       [["mean", "std", "min", "50%", "max"]].round(3).to_dict("index"))
+OUT["skew"] = train_raw[["dur", "sbytes", "dbytes", "spkts", "dpkts"]].skew().round(2).to_dict()
+
+# Figura 1: clases y categorías
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.2))
-cats = train["attack_cat"].value_counts()
-ax[0].bar(["Normal","Ataque"], [OUT["label_dist_train"][0], OUT["label_dist_train"][1]], color=["#4472C4","#C00000"])
+v = [OUT["label_dist_train"][0], OUT["label_dist_train"][1]]
+ax[0].bar(["Normal", "Ataque"], v, color=["#4472C4", "#C00000"])
 ax[0].set_title("Distribución de clases (entrenamiento)"); ax[0].set_ylabel("Registros"); es_y(ax[0])
-for i,v in enumerate([OUT["label_dist_train"][0], OUT["label_dist_train"][1]]): ax[0].text(i, v, f"{v:,}".replace(",","."), ha="center", va="bottom", fontsize=8)
-cats.plot(kind="barh", ax=ax[1], color="#4472C4"); ax[1].invert_yaxis()
-ax[1].set_title("Registros por categoría (entrenamiento)"); ax[1].set_xlabel("Registros"); ax[1].set_ylabel(""); es_x(ax[1])
+for i, n in enumerate(v):
+    ax[0].text(i, n, f"{n:,}".replace(",", "."), ha="center", va="bottom", fontsize=8)
+train_raw["attack_cat"].value_counts().plot(kind="barh", ax=ax[1], color="#4472C4"); ax[1].invert_yaxis()
+ax[1].set_title("Registros por categoría (entrenamiento)"); ax[1].set_xlabel("Registros")
+ax[1].set_ylabel(""); es_x(ax[1])
 plt.tight_layout(); plt.savefig("fig1_clases.png", bbox_inches="tight"); plt.close()
 
-# Figura 2: distribuciones sesgadas (log)
+# Figura 2: distribuciones asimétricas
 NOMBRES = {"dur": "Duración del flujo", "sbytes": "Bytes origen → destino", "rate": "Tasa de paquetes"}
 fig, ax = plt.subplots(1, 3, figsize=(9, 3.0))
-for a, col in zip(ax, ["dur","sbytes","rate"]):
-    a.hist(np.log1p(train[col]), bins=60, color="#4472C4", edgecolor="none")
+for a, col in zip(ax, ["dur", "sbytes", "rate"]):
+    a.hist(np.log1p(train_raw[col]), bins=60, color="#4472C4", edgecolor="none")
     a.set_title(f"{NOMBRES[col]}\nlog(1 + {col})"); a.set_ylabel(""); es_x(a); es_y(a)
 ax[0].set_ylabel("Frecuencia")
 plt.tight_layout(); plt.savefig("fig2_distribuciones.png", bbox_inches="tight"); plt.close()
 
-# ---------- 2. Limpieza y preparacion ----------
-for df in (train, test):
-    df.drop(columns=["id"], inplace=True)
-    df["service"] = df["service"].replace("-", "unknown")
-train = train.drop_duplicates().reset_index(drop=True)
-OUT["shape_train_clean"] = list(train.shape)
+# ======================= 2. PROTOCOLO: deduplicación, división, preprocesado =======================
+d = pp.preparar_todo()
+dedup, tr, va, test, prep, modelo, umbral = (d[k] for k in
+                                            ["dedup", "tr", "va", "test", "prep", "modelo", "umbral"])
+normales_tr = tr[tr.label == 0]
+OUT["protocolo"] = {
+    "registros_tras_deduplicar": int(len(dedup)),
+    "entrenamiento": {"total": int(len(tr)), "normales": int((tr.label == 0).sum()),
+                      "ataques_no_usados": int((tr.label == 1).sum())},
+    "validacion": {"total": int(len(va)), "normales": int((va.label == 0).sum()),
+                   "ataques": int((va.label == 1).sum())},
+    "prueba": {"total": int(len(test)), "normales": int((test.label == 0).sum()),
+               "ataques": int((test.label == 1).sum())},
+    "fraccion_validacion": pp.FRACCION_VALIDACION, "semilla": pp.SEMILLA,
+}
+OUT["preprocesado"] = {
+    "ajustado_con": "tráfico normal del subconjunto de entrenamiento",
+    "constantes_en_normal": prep.constantes,
+    "eliminadas_por_correlacion": prep.correladas,
+    "transformadas_log": prep.sesgadas,
+    "n_variables_finales": len(prep.variables),
+    "variables_finales": prep.variables,
+}
 
-num_cols = [c for c in train.select_dtypes(include=["number"]).columns if c != "label"]
-cat_cols = ["proto","service","state"]
-
-# Correlacion para eliminar redundancia
-corr = train[num_cols].corr().abs()
-upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
-drop_corr = [c for c in upper.columns if any(upper[c] > 0.95)]
-OUT["drop_corr"] = drop_corr
-feat_num = [c for c in num_cols if c not in drop_corr]
-
-# Figura 3: matriz de correlacion
+# Figura 3: correlación usada para la selección (tráfico normal de entrenamiento)
+num_cols = [c for c in normales_tr.select_dtypes("number").columns
+            if c != "label" and c not in prep.constantes]
 fig, ax = plt.subplots(figsize=(7.5, 6.5))
-im = ax.imshow(train[num_cols].corr(), cmap="RdBu_r", vmin=-1, vmax=1)
+im = ax.imshow(normales_tr[num_cols].corr(), cmap="RdBu_r", vmin=-1, vmax=1)
 ax.set_xticks(range(len(num_cols))); ax.set_xticklabels(num_cols, rotation=90, fontsize=6)
 ax.set_yticks(range(len(num_cols))); ax.set_yticklabels(num_cols, fontsize=6)
-cb = fig.colorbar(im, shrink=0.8); cb.ax.yaxis.set_major_formatter(ES); ax.set_title("Matriz de correlación (Pearson) de variables numéricas")
+cb = fig.colorbar(im, shrink=0.8); cb.ax.yaxis.set_major_formatter(ES)
+ax.set_title("Matriz de correlación (Pearson), tráfico normal de entrenamiento")
 plt.tight_layout(); plt.savefig("fig3_correlacion.png", bbox_inches="tight"); plt.close()
 
-# Frequency encoding para categoricas (adecuado para arboles / IF)
-for c in cat_cols:
-    freq = train[c].value_counts(normalize=True)
-    train[c + "_freq"] = train[c].map(freq)
-    test[c + "_freq"] = test[c].map(freq).fillna(0.0)
-features = feat_num + [c + "_freq" for c in cat_cols]
-OUT["n_features_final"] = len(features)
-OUT["features_final"] = features
-
-# log1p a variables muy sesgadas + escalado robusto
-skewed = [c for c in feat_num if abs(train[c].skew()) > 3]
-OUT["skewed_transformed"] = skewed
-Xtr = train[features].copy(); Xte = test[features].copy()
-for c in skewed:
-    Xtr[c] = np.log1p(Xtr[c].clip(lower=0)); Xte[c] = np.log1p(Xte[c].clip(lower=0))
-scaler = RobustScaler().fit(Xtr)
-Xtr_s = scaler.transform(Xtr); Xte_s = scaler.transform(Xte)
-ytr = train["label"].values; yte = test["label"].values
-
-# ---------- 3. Modelo: Isolation Forest (entrenado solo con trafico normal: novelty-style) ----------
-Xtr_normal = Xtr_s[ytr == 0]
-results = {}
-for cont in [0.01, 0.02, 0.05, 0.10, "auto"]:
-    m = IsolationForest(n_estimators=200, contamination=cont if cont != "auto" else "auto",
-                        max_samples=256, random_state=RS, n_jobs=-1).fit(Xtr_normal)
-    pred = (m.predict(Xte_s) == -1).astype(int)
-    results[str(cont)] = {"precision": precision_score(yte, pred), "recall": recall_score(yte, pred),
-                          "f1": f1_score(yte, pred)}
-OUT["contamination_sweep"] = {k: {kk: round(vv,4) for kk,vv in v.items()} for k,v in results.items()}
-
-# Modelo final: usar scores + umbral por percentil sobre score de anomalia
-model = IsolationForest(n_estimators=300, max_samples=512, contamination="auto",
-                        random_state=RS, n_jobs=-1).fit(Xtr_normal)
-score_te = -model.score_samples(Xte_s)   # mayor = mas anomalo
-score_tr = -model.score_samples(Xtr_s)
-auc = roc_auc_score(yte, score_te)
-OUT["roc_auc"] = round(float(auc), 4)
-
-# Barrido de umbral por percentil del score en normal-train
-thr_sweep = {}
-sc_norm_tr = -model.score_samples(Xtr_normal)
+# ======================= 3. VALIDACIÓN: análisis de umbrales y elección =======================
+sc_va_norm = va.loc[va.label == 0, "score"].values
+barrido = {}
 for pct in [80, 85, 90, 95, 99]:
-    thr = np.percentile(sc_norm_tr, pct)
-    pred = (score_te >= thr).astype(int)
-    tn, fp, fn, tp = confusion_matrix(yte, pred).ravel()
-    thr_sweep[pct] = {"thr": round(float(thr),4),
-                      "precision": round(precision_score(yte,pred),4),
-                      "recall": round(recall_score(yte,pred),4),
-                      "f1": round(f1_score(yte,pred),4),
-                      "fp": int(fp), "fn": int(fn),
-                      "far": round(fp/(fp+tn),4)}
-OUT["threshold_sweep"] = thr_sweep
+    thr = float(np.percentile(sc_va_norm, pct))
+    m = metricas(va.label, (va.score >= thr).astype(int))
+    barrido[pct] = {"thr": round(thr, 4), **{k: m[k] for k in ["precision", "recall", "f1", "fp", "fn", "far"]}}
+OUT["validacion_barrido_umbral"] = barrido
 
-# Umbral final = mejor F1
-best_pct = max(thr_sweep, key=lambda p: thr_sweep[p]["f1"])
-thr = np.percentile(sc_norm_tr, best_pct)
-pred_te = (score_te >= thr).astype(int)
-tn, fp, fn, tp = confusion_matrix(yte, pred_te).ravel()
-OUT["final"] = {"pct": int(best_pct), "threshold": round(float(thr),4),
-    "tp": int(tp), "tn": int(tn), "fp": int(fp), "fn": int(fn),
-    "precision": round(precision_score(yte, pred_te),4),
-    "recall": round(recall_score(yte, pred_te),4),
-    "f1": round(f1_score(yte, pred_te),4),
-    "accuracy": round((tp+tn)/(tp+tn+fp+fn),4),
-    "far": round(fp/(fp+tn),4),
-    "fnr": round(fn/(fn+tp),4)}
+# Comparación con el hiperparámetro contamination (también en validación)
+X_tr_norm = prep.transformar(normales_tr); X_va = prep.transformar(va)
+cont = {}
+for c in [0.01, 0.02, 0.05, 0.10, "auto"]:
+    mdl = IsolationForest(n_estimators=200, max_samples=256, contamination=c,
+                          random_state=pp.SEMILLA, n_jobs=-1).fit(X_tr_norm)
+    p = (mdl.predict(X_va) == -1).astype(int)
+    m = metricas(va.label, p)
+    cont[str(c)] = {k: m[k] for k in ["precision", "recall", "f1", "far"]}
+OUT["validacion_contamination"] = cont
 
-# Recall por categoria de ataque
-rec_cat = {}
+m_va = metricas(va.label, (va.score >= umbral).astype(int))
+OUT["umbral_elegido"] = {
+    "criterio": f"tasa de falsas alarmas en validación <= {pp.OBJETIVO_FAR:.0%}",
+    "objetivo_far": pp.OBJETIVO_FAR,
+    "umbral": round(umbral, 4),
+    "metricas_validacion": m_va,
+}
+
+# ======================= 4. PRUEBA: evaluación única con el umbral congelado =======================
+pred = (test.score >= umbral).astype(int).values
+y = test.label.values
+OUT["roc_auc_test"] = round(float(roc_auc_score(y, test.score)), 4)
+OUT["final_test"] = metricas(y, pred)
+rc = {}
 for cat in test["attack_cat"].unique():
     if cat == "Normal": continue
-    mask = test["attack_cat"] == cat
-    rec_cat[cat] = {"n": int(mask.sum()), "recall": round(float(pred_te[mask.values].mean()),4)}
-OUT["recall_por_categoria"] = dict(sorted(rec_cat.items(), key=lambda x: -x[1]["recall"]))
+    mask = (test["attack_cat"] == cat).values
+    rc[cat] = {"n": int(mask.sum()), "recall": round(float(pred[mask].mean()), 4)}
+OUT["recall_por_categoria_test"] = dict(sorted(rc.items(), key=lambda x: -x[1]["recall"]))
 
-# Figura 4: ROC + distribucion de scores
+# Figura 4: ROC y puntuaciones en prueba con el umbral congelado
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.4))
-fpr, tpr, _ = roc_curve(yte, score_te)
-ax[0].plot(fpr, tpr, color="#C00000", lw=1.5, label=f"Isolation Forest (AUC = {auc:.3f})".replace(".", ","))
-ax[0].plot([0,1],[0,1],"--", color="gray", lw=1, label="Clasificador aleatorio")
+fpr, tpr, _ = roc_curve(y, test.score)
+ax[0].plot(fpr, tpr, color="#C00000", lw=1.5,
+           label=f"Isolation Forest (AUC = {OUT['roc_auc_test']:.3f})".replace(".", ","))
+ax[0].plot([0, 1], [0, 1], "--", color="gray", lw=1, label="Clasificador aleatorio")
+ax[0].plot(OUT["final_test"]["far"], OUT["final_test"]["recall"], "o", color="black", ms=5,
+           label="Umbral fijado en validación")
 ax[0].set_xlabel("Tasa de falsas alarmas"); ax[0].set_ylabel("Cobertura (recall)"); es_x(ax[0]); es_y(ax[0])
 ax[0].set_title("Curva ROC (conjunto de prueba)"); ax[0].legend(fontsize=8, loc="lower right")
-n1, _, _ = ax[1].hist(score_te[yte==0], bins=80, alpha=0.65, label="Normal (etiqueta real)", color="#4472C4", density=True)
-n2, _, _ = ax[1].hist(score_te[yte==1], bins=80, alpha=0.65, label="Ataque (etiqueta real)", color="#C00000", density=True)
-ax[1].axvline(thr, color="black", ls="--", lw=1, label=f"Umbral (P{best_pct})")
-ax[1].set_ylim(0, max(n1.max(), n2.max()) * 1.35)  # aire vertical para que la leyenda no tape las barras
+n1, _, _ = ax[1].hist(test.score[y == 0], bins=80, alpha=0.65, label="Normal (etiqueta real)",
+                      color="#4472C4", density=True)
+n2, _, _ = ax[1].hist(test.score[y == 1], bins=80, alpha=0.65, label="Ataque (etiqueta real)",
+                      color="#C00000", density=True)
+ax[1].axvline(umbral, color="black", ls="--", lw=1, label="Umbral fijado en validación")
+ax[1].set_ylim(0, max(n1.max(), n2.max()) * 1.35)
 ax[1].set_xlabel("Puntuación de anomalía"); ax[1].set_ylabel("Densidad"); es_x(ax[1]); es_y(ax[1])
-ax[1].set_title("Puntuaciones según la etiqueta real"); ax[1].legend(fontsize=8, loc="upper right", framealpha=0.95)
+ax[1].set_title("Puntuaciones según la etiqueta real (prueba)")
+ax[1].legend(fontsize=8, loc="upper right", framealpha=0.95)
 plt.tight_layout(); plt.savefig("fig4_roc_scores.png", bbox_inches="tight"); plt.close()
 
-# Figura 5: matriz de confusion + recall por categoria
+# Figura 5: matriz de confusión y cobertura por familia (prueba)
+f = OUT["final_test"]
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
-cm = np.array([[tn, fp],[fn, tp]])
-im = ax[0].imshow(cm, cmap="Blues")
+cm = np.array([[f["tn"], f["fp"]], [f["fn"], f["tp"]]])
+ax[0].imshow(cm, cmap="Blues")
 for i in range(2):
     for j in range(2):
-        ax[0].text(j, i, f"{cm[i,j]:,}".replace(",","."), ha="center", va="center",
-                   color="white" if cm[i,j] > cm.max()/2 else "black", fontsize=11)
-ax[0].set_xticks([0,1]); ax[0].set_xticklabels(["Predicho normal","Predicho anómalo"])
-ax[0].set_yticks([0,1]); ax[0].set_yticklabels(["Real: normal","Real: ataque"])
+        ax[0].text(j, i, f"{cm[i, j]:,}".replace(",", "."), ha="center", va="center",
+                   color="white" if cm[i, j] > cm.max() / 2 else "black", fontsize=11)
+ax[0].set_xticks([0, 1]); ax[0].set_xticklabels(["Predicho normal", "Predicho anómalo"])
+ax[0].set_yticks([0, 1]); ax[0].set_yticklabels(["Real: normal", "Real: ataque"])
 ax[0].set_title("Matriz de confusión (conjunto de prueba)")
-rc = OUT["recall_por_categoria"]
-ax[1].barh(list(rc.keys()), [v["recall"] for v in rc.values()], color="#4472C4")
-ax[1].invert_yaxis(); ax[1].set_xlim(0,1); ax[1].set_xlabel("Cobertura (recall)"); es_x(ax[1])
+rcv = OUT["recall_por_categoria_test"]
+ax[1].barh(list(rcv.keys()), [v["recall"] for v in rcv.values()], color="#4472C4")
+ax[1].invert_yaxis(); ax[1].set_xlim(0, 1); ax[1].set_xlabel("Cobertura (recall)"); es_x(ax[1])
 ax[1].set_title("Cobertura por categoría de ataque")
 plt.tight_layout(); plt.savefig("fig5_confusion_categorias.png", bbox_inches="tight"); plt.close()
 
-# ---------- 4. KPIs ----------
-det = test.copy(); det["pred"] = pred_te; det["score"] = score_te
-total_bytes = int((det["sbytes"] + det["dbytes"]).sum())
-OUT["kpis"] = {
-    "volumen_total_GB": round(total_bytes/1e9, 2),
-    "conexiones_totales": int(len(det)),
-    "anomalias_detectadas": int(det["pred"].sum()),
-    "pct_trafico_anomalo": round(float(det["pred"].mean()*100), 2),
-    "tasa_falsas_alarmas_pct": round(OUT["final"]["far"]*100, 2),
-    "top_proto_anom": det[det.pred==1]["proto"].value_counts().head(5).to_dict(),
-    "top_service_anom": det[det.pred==1]["service"].value_counts().head(5).to_dict(),
+# ======================= 5. KPI (prueba, umbral congelado) =======================
+det = test.assign(pred=pred)
+OUT["kpis_test"] = {
+    "volumen_total_GB": round(float((det.sbytes + det.dbytes).sum()) / 1e9, 2),
+    "flujos_analizados": int(len(det)),
+    "flujos_anomalos": int(det.pred.sum()),
+    "pct_flujos_anomalos": round(float(det.pred.mean() * 100), 2),
+    "tasa_falsas_alarmas_pct": round(f["far"] * 100, 2),
+    "top_proto_anom": det[det.pred == 1]["proto"].value_counts().head(5).to_dict(),
+    "top_service_anom": det[det.pred == 1]["service"].value_counts().head(5).to_dict(),
 }
 
-# Figura 6: KPIs de distribucion de anomalias (proto/servicio)
+# Figura 6: anomalías por protocolo y servicio
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.2))
-det[det.pred==1]["proto"].value_counts().head(6).plot(kind="bar", ax=ax[0], color="#C00000")
-ax[0].set_title("Anomalías detectadas por protocolo"); ax[0].set_ylabel("Flujos anómalos"); ax[0].set_xlabel("Protocolo"); ax[0].tick_params(axis="x", rotation=30); es_y(ax[0])
-det[det.pred==1]["service"].value_counts().head(6).plot(kind="bar", ax=ax[1], color="#C00000")
-ax[1].set_title("Anomalías detectadas por servicio"); ax[1].set_ylabel("Flujos anómalos"); ax[1].set_xlabel("Servicio"); ax[1].tick_params(axis="x", rotation=30); es_y(ax[1])
+det[det.pred == 1]["proto"].value_counts().head(6).plot(kind="bar", ax=ax[0], color="#C00000")
+ax[0].set_title("Anomalías detectadas por protocolo"); ax[0].set_ylabel("Flujos anómalos")
+ax[0].set_xlabel("Protocolo"); ax[0].tick_params(axis="x", rotation=30); es_y(ax[0])
+det[det.pred == 1]["service"].value_counts().head(6).plot(kind="bar", ax=ax[1], color="#C00000")
+ax[1].set_title("Anomalías detectadas por servicio"); ax[1].set_ylabel("Flujos anómalos")
+ax[1].set_xlabel("Servicio"); ax[1].tick_params(axis="x", rotation=30); es_y(ax[1])
 plt.tight_layout(); plt.savefig("fig6_kpis.png", bbox_inches="tight"); plt.close()
 
-with open("resultados.json","w") as f:
-    json.dump(OUT, f, indent=2, ensure_ascii=False, default=str)
-print(json.dumps(OUT, indent=2, ensure_ascii=False, default=str)[:6000])
+with open("resultados.json", "w", encoding="utf-8") as fh:
+    json.dump(OUT, fh, indent=2, ensure_ascii=False, default=str)
+print(json.dumps({k: OUT[k] for k in ["protocolo", "umbral_elegido", "roc_auc_test", "final_test"]},
+                 indent=2, ensure_ascii=False, default=str))
