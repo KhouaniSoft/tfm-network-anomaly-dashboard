@@ -3,21 +3,12 @@
     175341,
     45
   ],
-  "shape_test": [
-    82332,
-    45
-  ],
   "nulls_train": 0,
-  "nulls_test": 0,
   "dups_train": 67601,
   "dups_train_pct": 38.55,
   "label_dist_train": {
     "1": 119341,
     "0": 56000
-  },
-  "label_dist_test": {
-    "1": 45332,
-    "0": 37000
   },
   "attack_cat_train": {
     "Normal": 56000,
@@ -30,18 +21,6 @@
     "Backdoor": 1746,
     "Shellcode": 1133,
     "Worms": 130
-  },
-  "attack_cat_test": {
-    "Normal": 37000,
-    "Generic": 18871,
-    "Exploits": 11132,
-    "Fuzzers": 6062,
-    "DoS": 4089,
-    "Reconnaissance": 3496,
-    "Analysis": 677,
-    "Backdoor": 583,
-    "Shellcode": 378,
-    "Worms": 44
   },
   "service_dash_pct": 53.71,
   "n_proto": 133,
@@ -109,11 +88,6 @@
       "total": 21548,
       "normales": 10378,
       "ataques": 11170
-    },
-    "prueba": {
-      "total": 82332,
-      "normales": 37000,
-      "ataques": 45332
     },
     "fraccion_validacion": 0.2,
     "semilla": 42
@@ -288,6 +262,29 @@
       "accuracy": 0.6743,
       "far": 0.1,
       "fnr": 0.5354
+    }
+  },
+  "composicion_test": {
+    "shape": [
+      82332,
+      45
+    ],
+    "nulls": 0,
+    "label_dist": {
+      "1": 45332,
+      "0": 37000
+    },
+    "attack_cat": {
+      "Normal": 37000,
+      "Generic": 18871,
+      "Exploits": 11132,
+      "Fuzzers": 6062,
+      "DoS": 4089,
+      "Reconnaissance": 3496,
+      "Analysis": 677,
+      "Backdoor": 583,
+      "Shellcode": 378,
+      "Worms": 44
     }
   },
   "roc_auc_test": 0.8195,
