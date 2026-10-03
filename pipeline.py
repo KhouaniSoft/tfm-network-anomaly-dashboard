@@ -47,14 +47,14 @@ def metricas(y, pred):
 
 # ======================= 1. ANÁLISIS EXPLORATORIO (partición oficial completa) =======================
 train_raw, test_raw = pp.cargar()
-OUT["shape_train"] = list(train_raw.shape); OUT["shape_test"] = list(test_raw.shape)
-OUT["nulls_train"] = int(train_raw.isna().sum().sum()); OUT["nulls_test"] = int(test_raw.isna().sum().sum())
+# El análisis exploratorio se limita a la partición de entrenamiento: la de prueba
+# no se inspecciona hasta que el modelo y el umbral están congelados (apartado 4).
+OUT["shape_train"] = list(train_raw.shape)
+OUT["nulls_train"] = int(train_raw.isna().sum().sum())
 OUT["dups_train"] = int(train_raw.drop(columns=["id"]).duplicated().sum())  # sin "id", único por fila
 OUT["dups_train_pct"] = round(OUT["dups_train"] / len(train_raw) * 100, 2)
 OUT["label_dist_train"] = train_raw["label"].value_counts().to_dict()
-OUT["label_dist_test"] = test_raw["label"].value_counts().to_dict()
 OUT["attack_cat_train"] = train_raw["attack_cat"].value_counts().to_dict()
-OUT["attack_cat_test"] = test_raw["attack_cat"].value_counts().to_dict()
 OUT["service_dash_pct"] = round(float((train_raw["service"] == "-").mean() * 100), 2)
 OUT["n_proto"] = int(train_raw["proto"].nunique()); OUT["n_service"] = int(train_raw["service"].nunique())
 OUT["n_state"] = int(train_raw["state"].nunique())
@@ -94,8 +94,6 @@ OUT["protocolo"] = {
                       "ataques_no_usados": int((tr.label == 1).sum())},
     "validacion": {"total": int(len(va)), "normales": int((va.label == 0).sum()),
                    "ataques": int((va.label == 1).sum())},
-    "prueba": {"total": int(len(test)), "normales": int((test.label == 0).sum()),
-               "ataques": int((test.label == 1).sum())},
     "fraccion_validacion": pp.FRACCION_VALIDACION, "semilla": pp.SEMILLA,
 }
 OUT["preprocesado"] = {
@@ -147,6 +145,13 @@ OUT["umbral_elegido"] = {
 }
 
 # ======================= 4. PRUEBA: evaluación única con el umbral congelado =======================
+# Modelo y umbral ya congelados: a partir de aquí se describe y evalúa la partición de prueba.
+OUT["composicion_test"] = {
+    "shape": list(test_raw.shape),
+    "nulls": int(test_raw.isna().sum().sum()),
+    "label_dist": test_raw["label"].value_counts().to_dict(),
+    "attack_cat": test_raw["attack_cat"].value_counts().to_dict(),
+}
 pred = (test.score >= umbral).astype(int).values
 y = test.label.values
 OUT["roc_auc_test"] = round(float(roc_auc_score(y, test.score)), 4)

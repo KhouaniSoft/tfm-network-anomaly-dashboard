@@ -54,8 +54,10 @@ pct = st.sidebar.slider("Umbral de decisión (percentil de la puntuación en tr�
                         help="Percentiles altos = menos alertas y menos falsas alarmas, "
                              "pero menor cobertura de ataques.")
 umbral = float(np.percentile(score_norm, pct))
-st.sidebar.caption(f"Umbral de referencia: P{PCT_REF}, fijado en validación para un objetivo "
-                   f"de falsas alarmas del {int(pp.OBJETIVO_FAR*100)} %.")
+st.sidebar.caption(f"Umbral de referencia: P{PCT_REF}, fijado de antemano en validación para un objetivo "
+                   f"de falsas alarmas del {int(pp.OBJETIVO_FAR*100)} %. Los demás valores del deslizador "
+                   f"son una exploración del compromiso entre cobertura y falsas alarmas y no se usan "
+                   f"para seleccionar el modelo.")
 test["pred"] = (test["score"] >= umbral).astype(int)
 
 st.sidebar.markdown("### Filtros")
@@ -142,7 +144,7 @@ fig.update_layout(barmode="overlay", xaxis_title=f"log(1 + {var})", yaxis_title=
 st.plotly_chart(estilo(fig, 320), width="stretch")
 
 # ---------------- Rendimiento del modelo ----------------
-st.subheader("Rendimiento del modelo (contra las etiquetas reales del conjunto de datos)")
+st.subheader("Rendimiento del modelo (conjunto de prueba, contra las etiquetas reales)")
 fpr, tpr, _ = roc_curve(test.label, test.score)
 auc = roc_auc_score(test.label, test.score)
 col1, col2 = st.columns([1, 1])
