@@ -148,11 +148,11 @@ auc = roc_auc_score(test.label, test.score)
 col1, col2 = st.columns([1, 1])
 with col1:
     fig = go.Figure()
-    fig.add_scatter(x=fpr, y=tpr, name=f"Curva ROC (AUC = {es_num(auc, 3)})",
+    fig.add_scatter(x=fpr, y=tpr, name=f"ROC (AUC = {es_num(auc, 3)})",
                     line=dict(color="#C00000"))
-    fig.add_scatter(x=[0, 1], y=[0, 1], name="Clasificador aleatorio",
+    fig.add_scatter(x=[0, 1], y=[0, 1], name="Azar",
                     line=dict(dash="dash", color="gray"))
-    fig.add_scatter(x=[far], y=[recall], mode="markers", name=f"Umbral seleccionado (P{pct})",
+    fig.add_scatter(x=[far], y=[recall], mode="markers", name=f"Umbral (P{pct})",
                     marker=dict(size=10, color="black"))
     fig.update_layout(xaxis_title="Tasa de falsas alarmas", yaxis_title="Cobertura (recall)")
     st.plotly_chart(estilo(fig, 340), width="stretch")
