@@ -217,7 +217,8 @@ ax[0].set_xlabel("Protocolo"); ax[0].tick_params(axis="x", rotation=30); es_y(ax
 det[det.pred == 1]["service"].value_counts().head(6).plot(kind="bar", ax=ax[1], color="#C00000")
 ax[1].set_title("Anomalías detectadas por servicio"); ax[1].set_ylabel("Flujos anómalos")
 ax[1].set_xlabel("Servicio"); ax[1].tick_params(axis="x", rotation=30); es_y(ax[1])
-plt.tight_layout(); plt.savefig("fig6_kpis.png", bbox_inches="tight"); plt.close()
+plt.tight_layout(); fig.align_xlabels(ax)   # "Protocolo" y "Servicio" a la misma altura
+plt.savefig("fig6_kpis.png", bbox_inches="tight"); plt.close()
 
 with open("resultados.json", "w", encoding="utf-8") as fh:
     json.dump(OUT, fh, indent=2, ensure_ascii=False, default=str)
