@@ -12,7 +12,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
-from sklearn.ensemble import IsolationForest
 from sklearn.metrics import (precision_score, recall_score, f1_score,
                              confusion_matrix, roc_auc_score, roc_curve)
 import preprocesado as pp
@@ -45,7 +44,8 @@ def metricas(y, pred):
             "fnr": round(fn / (fn + tp), 4) if fn + tp else 0.0}
 
 
-# ======================= 1. ANÁLISIS EXPLORATORIO (partición oficial completa) =======================
+# ======================= 1. DESCRIPCIÓN BÁSICA (partición oficial de entrenamiento) =======================
+# El análisis exploratorio completo está en eda.py.
 train_raw, test_raw = pp.cargar()
 # El análisis exploratorio se limita a la partición de entrenamiento: la de prueba
 # no se inspecciona hasta que el modelo y el umbral están congelados (apartado 4).
@@ -89,7 +89,8 @@ dedup, tr, va, test, prep, modelo, umbral = (d[k] for k in
                                             ["dedup", "tr", "va", "test", "prep", "modelo", "umbral"])
 normales_tr = tr[tr.label == 0]
 OUT["protocolo"] = {
-    "registros_tras_deduplicar": int(len(dedup)),
+    "registros_tras_deduplicar_y_depurar": int(len(dedup)),
+    "filas_eliminadas_por_etiquetas_contradictorias": d["n_contradictorias"],
     "entrenamiento": {"total": int(len(tr)), "normales": int((tr.label == 0).sum()),
                       "ataques_no_usados": int((tr.label == 1).sum())},
     "validacion": {"total": int(len(va)), "normales": int((va.label == 0).sum()),
@@ -98,6 +99,7 @@ OUT["protocolo"] = {
 }
 OUT["preprocesado"] = {
     "ajustado_con": "tráfico normal del subconjunto de entrenamiento",
+    "excluidas_explicitamente": pp.EXCLUIDAS,
     "constantes_en_normal": prep.constantes,
     "eliminadas_por_correlacion": prep.correladas,
     "transformadas_log": prep.sesgadas,
@@ -125,16 +127,21 @@ for pct in [80, 85, 90, 95, 99]:
     barrido[pct] = {"thr": round(thr, 4), **{k: m[k] for k in ["precision", "recall", "f1", "fp", "fn", "far"]}}
 OUT["validacion_barrido_umbral"] = barrido
 
-# Comparación con el hiperparámetro contamination (también en validación)
-X_tr_norm = prep.transformar(normales_tr); X_va = prep.transformar(va)
-cont = {}
-for c in [0.01, 0.02, 0.05, 0.10, "auto"]:
-    mdl = IsolationForest(n_estimators=200, max_samples=256, contamination=c,
-                          random_state=pp.SEMILLA, n_jobs=-1).fit(X_tr_norm)
-    p = (mdl.predict(X_va) == -1).astype(int)
-    m = metricas(va.label, p)
-    cont[str(c)] = {k: m[k] for k in ["precision", "recall", "f1", "far"]}
-OUT["validacion_contamination"] = cont
+# Análisis de sensibilidad: dependencia del modelo respecto a sttl/dttl (solo en VALIDACIÓN).
+# El análisis exploratorio muestra que el TTL separa casi por completo las clases en este
+# conjunto de datos (artefacto del banco de pruebas). El modelo principal las conserva; aquí
+# se mide cuánto rendimiento depende de ellas. No interviene en la selección del modelo.
+from sklearn.metrics import roc_auc_score as _auc
+def _variante(excluir):
+    p = pp.Preprocesado(excluir_extra=excluir).ajustar(normales_tr)
+    m = pp.entrenar(p.transformar(normales_tr))
+    s_va = pp.puntuar(m, p.transformar(va))
+    u = pp.umbral_por_far(s_va[va.label.values == 0])
+    r = metricas(va.label, (s_va >= u).astype(int))
+    return {"auc_validacion": round(float(_auc(va.label, s_va)), 4),
+            **{k: r[k] for k in ["precision", "recall", "f1", "far"]}}
+OUT["sensibilidad_ttl_validacion"] = {"con_ttl (modelo principal)": _variante([]),
+                                      "sin_ttl": _variante(["sttl", "dttl"])}
 
 m_va = metricas(va.label, (va.score >= umbral).astype(int))
 OUT["umbral_elegido"] = {

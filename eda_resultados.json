@@ -1,0 +1,385 @@
+{
+  "P1_estructura": {
+    "filas": 175341,
+    "columnas": 44,
+    "numericas": 39,
+    "categoricas": [
+      "proto",
+      "service",
+      "state"
+    ],
+    "etiquetas": [
+      "label",
+      "attack_cat"
+    ],
+    "nulos_por_columna": {},
+    "negativos_por_columna": {},
+    "constantes": [],
+    "valores_distintos": {
+      "dur": 74039,
+      "spkts": 480,
+      "dpkts": 443,
+      "sbytes": 7214,
+      "dbytes": 6660,
+      "rate": 76991,
+      "sttl": 11,
+      "dttl": 6,
+      "sload": 80885,
+      "dload": 77474,
+      "sloss": 409,
+      "dloss": 370,
+      "sinpkt": 76161,
+      "dinpkt": 74245,
+      "sjit": 77532,
+      "djit": 76831,
+      "swin": 13,
+      "stcpb": 75265,
+      "dtcpb": 75089,
+      "dwin": 7,
+      "tcprtt": 43319,
+      "synack": 40142,
+      "ackdat": 37708,
+      "smean": 1357,
+      "dmean": 1328,
+      "trans_depth": 11,
+      "response_body_len": 2386,
+      "ct_srv_src": 52,
+      "ct_state_ttl": 5,
+      "ct_dst_ltm": 50,
+      "ct_src_dport_ltm": 47,
+      "ct_dst_sport_ltm": 32,
+      "ct_dst_src_ltm": 54,
+      "is_ftp_login": 4,
+      "ct_ftp_cmd": 4,
+      "ct_flw_http_mthd": 11,
+      "ct_src_ltm": 50,
+      "ct_srv_dst": 52,
+      "is_sm_ips_ports": 2
+    },
+    "binarias_o_casi": [
+      "is_sm_ips_ports"
+    ],
+    "clases": {
+      "1": 119341,
+      "0": 56000
+    },
+    "familias": {
+      "Normal": 56000,
+      "Generic": 40000,
+      "Exploits": 33393,
+      "Fuzzers": 18184,
+      "DoS": 12264,
+      "Reconnaissance": 10491,
+      "Analysis": 2000,
+      "Backdoor": 1746,
+      "Shellcode": 1133,
+      "Worms": 130
+    }
+  },
+  "P2_duplicados": {
+    "total": 67601,
+    "total_pct": 38.55,
+    "filas_tras_deduplicar": 107740,
+    "por_familia": {
+      "Normal": {
+        "original": 56000,
+        "tras_deduplicar": 51890,
+        "duplicados_pct": 7.34,
+        "peso_original_pct": 31.94,
+        "peso_dedup_pct": 48.16
+      },
+      "Generic": {
+        "original": 40000,
+        "tras_deduplicar": 4181,
+        "duplicados_pct": 89.55,
+        "peso_original_pct": 22.81,
+        "peso_dedup_pct": 3.88
+      },
+      "Exploits": {
+        "original": 33393,
+        "tras_deduplicar": 19844,
+        "duplicados_pct": 40.57,
+        "peso_original_pct": 19.04,
+        "peso_dedup_pct": 18.42
+      },
+      "Fuzzers": {
+        "original": 18184,
+        "tras_deduplicar": 16150,
+        "duplicados_pct": 11.19,
+        "peso_original_pct": 10.37,
+        "peso_dedup_pct": 14.99
+      },
+      "DoS": {
+        "original": 12264,
+        "tras_deduplicar": 3806,
+        "duplicados_pct": 68.97,
+        "peso_original_pct": 6.99,
+        "peso_dedup_pct": 3.53
+      },
+      "Reconnaissance": {
+        "original": 10491,
+        "tras_deduplicar": 7522,
+        "duplicados_pct": 28.3,
+        "peso_original_pct": 5.98,
+        "peso_dedup_pct": 6.98
+      },
+      "Analysis": {
+        "original": 2000,
+        "tras_deduplicar": 1594,
+        "duplicados_pct": 20.3,
+        "peso_original_pct": 1.14,
+        "peso_dedup_pct": 1.48
+      },
+      "Backdoor": {
+        "original": 1746,
+        "tras_deduplicar": 1535,
+        "duplicados_pct": 12.08,
+        "peso_original_pct": 1.0,
+        "peso_dedup_pct": 1.42
+      },
+      "Shellcode": {
+        "original": 1133,
+        "tras_deduplicar": 1091,
+        "duplicados_pct": 3.71,
+        "peso_original_pct": 0.65,
+        "peso_dedup_pct": 1.01
+      },
+      "Worms": {
+        "original": 130,
+        "tras_deduplicar": 127,
+        "duplicados_pct": 2.31,
+        "peso_original_pct": 0.07,
+        "peso_dedup_pct": 0.12
+      }
+    }
+  },
+  "P3_etiquetas_contradictorias": {
+    "grupos_conflictivos": 229,
+    "filas_implicadas": 458,
+    "filas_implicadas_pct_dedup": 0.43,
+    "familias_implicadas": {
+      "Normal": 229,
+      "Fuzzers": 228,
+      "Shellcode": 1
+    }
+  },
+  "P4_categoricas": {
+    "proto": {
+      "categorias": 133,
+      "top5_pct": {
+        "tcp": 45.59,
+        "udp": 36.09,
+        "unas": 6.89,
+        "arp": 1.63,
+        "ospf": 1.48
+      },
+      "raras_n": 118,
+      "raras_flujos_pct": 6.56,
+      "categorias_solo_en_ataque": 126
+    },
+    "service": {
+      "categorias": 13,
+      "top5_pct": {
+        "-": 53.71,
+        "dns": 26.97,
+        "http": 10.68,
+        "smtp": 2.88,
+        "ftp-data": 2.28
+      },
+      "raras_n": 5,
+      "raras_flujos_pct": 0.15,
+      "categorias_solo_en_ataque": 3,
+      "sin_identificar_pct": 53.71
+    },
+    "state": {
+      "categorias": 9,
+      "top5_pct": {
+        "INT": 46.92,
+        "FIN": 44.38,
+        "CON": 7.5,
+        "REQ": 1.14,
+        "RST": 0.05
+      },
+      "raras_n": 5,
+      "raras_flujos_pct": 0.06,
+      "categorias_solo_en_ataque": 0
+    }
+  },
+  "P5_asimetria": {
+    "criterio": "|asimetría| > 3, solo variables con más de dos valores",
+    "asimetria": {
+      "trans_depth": 167.34,
+      "response_body_len": 76.34,
+      "sbytes": 45.3,
+      "sloss": 44.75,
+      "dloss": 41.38,
+      "spkts": 40.22,
+      "dbytes": 39.76,
+      "dpkts": 36.76,
+      "dinpkt": 29.68,
+      "djit": 29.54,
+      "ct_flw_http_mthd": 23.45,
+      "sjit": 17.65,
+      "is_ftp_login": 9.94,
+      "ct_ftp_cmd": 9.94,
+      "sload": 8.7,
+      "sinpkt": 7.92,
+      "dur": 7.5,
+      "synack": 5.79,
+      "ackdat": 5.62,
+      "dload": 4.69,
+      "tcprtt": 4.04,
+      "smean": 3.73,
+      "rate": 3.32,
+      "dmean": 2.83,
+      "ct_src_dport_ltm": 2.17,
+      "ct_dst_ltm": 2.05,
+      "ct_src_ltm": 1.84,
+      "ct_dst_sport_ltm": 1.7,
+      "ct_dst_src_ltm": 1.56,
+      "ct_srv_dst": 1.53,
+      "ct_srv_src": 1.52,
+      "dtcpb": 1.08,
+      "stcpb": 1.08,
+      "ct_state_ttl": 0.93,
+      "dttl": 0.9,
+      "dwin": 0.2,
+      "swin": 0.18,
+      "sttl": -0.68
+    },
+    "candidatas_log": [
+      "trans_depth",
+      "response_body_len",
+      "sbytes",
+      "sloss",
+      "dloss",
+      "spkts",
+      "dbytes",
+      "dpkts",
+      "dinpkt",
+      "djit",
+      "ct_flw_http_mthd",
+      "sjit",
+      "is_ftp_login",
+      "ct_ftp_cmd",
+      "sload",
+      "sinpkt",
+      "dur",
+      "synack",
+      "ackdat",
+      "dload",
+      "tcprtt",
+      "smean",
+      "rate"
+    ]
+  },
+  "P6_redundancia": {
+    "base": "tráfico normal deduplicado",
+    "criterio": "|r de Pearson| > 0.95",
+    "pares": [
+      {
+        "a": "is_ftp_login",
+        "b": "ct_ftp_cmd",
+        "r": 1.0
+      },
+      {
+        "a": "dpkts",
+        "b": "dloss",
+        "r": 0.993
+      },
+      {
+        "a": "dbytes",
+        "b": "dloss",
+        "r": 0.992
+      },
+      {
+        "a": "dpkts",
+        "b": "dbytes",
+        "r": 0.972
+      },
+      {
+        "a": "swin",
+        "b": "dwin",
+        "r": 0.971
+      },
+      {
+        "a": "sinpkt",
+        "b": "is_sm_ips_ports",
+        "r": 0.966
+      },
+      {
+        "a": "spkts",
+        "b": "dpkts",
+        "r": 0.959
+      }
+    ]
+  },
+  "P7_secuencia_tcp": {
+    "stcpb": {
+      "valores_distintos": 75265,
+      "ceros_pct": 54.89,
+      "media_normal": 1473765351,
+      "media_ataque": 732510022
+    },
+    "dtcpb": {
+      "valores_distintos": 75089,
+      "ceros_pct": 54.89,
+      "media_normal": 1463697455,
+      "media_ataque": 736685710
+    }
+  },
+  "P7_ttl": {
+    "sttl": {
+      "254": {
+        "normal_pct": 20.05,
+        "ataque_pct": 86.74
+      },
+      "31": {
+        "normal_pct": 70.46,
+        "ataque_pct": 0.0
+      },
+      "62": {
+        "normal_pct": 3.87,
+        "ataque_pct": 13.0
+      },
+      "0": {
+        "normal_pct": 5.11,
+        "ataque_pct": 0.25
+      },
+      "64": {
+        "normal_pct": 0.32,
+        "ataque_pct": 0.0
+      },
+      "1": {
+        "normal_pct": 0.11,
+        "ataque_pct": 0.0
+      }
+    },
+    "dttl": {
+      "0": {
+        "normal_pct": 12.05,
+        "ataque_pct": 65.05
+      },
+      "252": {
+        "normal_pct": 17.36,
+        "ataque_pct": 34.29
+      },
+      "29": {
+        "normal_pct": 70.46,
+        "ataque_pct": 0.0
+      },
+      "60": {
+        "normal_pct": 0.13,
+        "ataque_pct": 0.67
+      },
+      "254": {
+        "normal_pct": 0.0,
+        "ataque_pct": 0.0
+      },
+      "31": {
+        "normal_pct": 0.0,
+        "ataque_pct": 0.0
+      }
+    }
+  }
+}

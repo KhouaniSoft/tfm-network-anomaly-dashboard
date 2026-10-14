@@ -78,29 +78,34 @@
     "dpkts": 36.76
   },
   "protocolo": {
-    "registros_tras_deduplicar": 107740,
+    "registros_tras_deduplicar_y_depurar": 107282,
+    "filas_eliminadas_por_etiquetas_contradictorias": 458,
     "entrenamiento": {
-      "total": 86192,
-      "normales": 41512,
-      "ataques_no_usados": 44680
+      "total": 85825,
+      "normales": 41328,
+      "ataques_no_usados": 44497
     },
     "validacion": {
-      "total": 21548,
-      "normales": 10378,
-      "ataques": 11170
+      "total": 21457,
+      "normales": 10333,
+      "ataques": 11124
     },
     "fraccion_validacion": 0.2,
     "semilla": 42
   },
   "preprocesado": {
     "ajustado_con": "tráfico normal del subconjunto de entrenamiento",
+    "excluidas_explicitamente": {
+      "stcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
+      "dtcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
+      "is_ftp_login": "indicador binario con valores imposibles (2, 4); idéntico a ct_ftp_cmd (r = 1)"
+    },
     "constantes_en_normal": [],
     "eliminadas_por_correlacion": [
       "dpkts",
       "dbytes",
       "dloss",
       "dwin",
-      "ct_ftp_cmd",
       "is_sm_ips_ports"
     ],
     "transformadas_log": [
@@ -124,11 +129,11 @@
       "ct_src_dport_ltm",
       "ct_dst_sport_ltm",
       "ct_dst_src_ltm",
-      "is_ftp_login",
+      "ct_ftp_cmd",
       "ct_flw_http_mthd",
       "ct_srv_dst"
     ],
-    "n_variables_finales": 36,
+    "n_variables_finales": 34,
     "variables_finales": [
       "dur",
       "spkts",
@@ -144,8 +149,6 @@
       "sjit",
       "djit",
       "swin",
-      "stcpb",
-      "dtcpb",
       "tcprtt",
       "synack",
       "ackdat",
@@ -159,7 +162,7 @@
       "ct_src_dport_ltm",
       "ct_dst_sport_ltm",
       "ct_dst_src_ltm",
-      "is_ftp_login",
+      "ct_ftp_cmd",
       "ct_flw_http_mthd",
       "ct_src_ltm",
       "ct_srv_dst",
@@ -170,98 +173,82 @@
   },
   "validacion_barrido_umbral": {
     "80": {
-      "thr": 0.4668,
-      "precision": 0.8042,
-      "recall": 0.7634,
-      "f1": 0.7833,
-      "fp": 2076,
-      "fn": 2643,
+      "thr": 0.4669,
+      "precision": 0.7993,
+      "recall": 0.7398,
+      "f1": 0.7684,
+      "fp": 2067,
+      "fn": 2894,
       "far": 0.2
     },
     "85": {
-      "thr": 0.4824,
-      "precision": 0.8231,
-      "recall": 0.6485,
-      "f1": 0.7255,
-      "fp": 1557,
-      "fn": 3926,
+      "thr": 0.4895,
+      "precision": 0.8263,
+      "recall": 0.6626,
+      "f1": 0.7354,
+      "fp": 1550,
+      "fn": 3753,
       "far": 0.15
     },
     "90": {
-      "thr": 0.5062,
-      "precision": 0.8333,
-      "recall": 0.4646,
-      "f1": 0.5966,
-      "fp": 1038,
-      "fn": 5980,
-      "far": 0.1
+      "thr": 0.5121,
+      "precision": 0.8411,
+      "recall": 0.4922,
+      "f1": 0.621,
+      "fp": 1034,
+      "fn": 5649,
+      "far": 0.1001
     },
     "95": {
-      "thr": 0.5428,
-      "precision": 0.7923,
-      "recall": 0.1773,
-      "f1": 0.2897,
-      "fp": 519,
-      "fn": 9190,
+      "thr": 0.5486,
+      "precision": 0.8169,
+      "recall": 0.2073,
+      "f1": 0.3307,
+      "fp": 517,
+      "fn": 8818,
       "far": 0.05
     },
     "99": {
-      "thr": 0.5907,
-      "precision": 0.8628,
-      "recall": 0.0585,
-      "f1": 0.1097,
+      "thr": 0.5992,
+      "precision": 0.8685,
+      "recall": 0.0618,
+      "f1": 0.1153,
       "fp": 104,
-      "fn": 10516,
-      "far": 0.01
+      "fn": 10437,
+      "far": 0.0101
     }
   },
-  "validacion_contamination": {
-    "0.01": {
-      "precision": 0.8628,
-      "recall": 0.0563,
-      "f1": 0.1057,
-      "far": 0.0096
+  "sensibilidad_ttl_validacion": {
+    "con_ttl (modelo principal)": {
+      "auc_validacion": 0.8388,
+      "precision": 0.8411,
+      "recall": 0.4922,
+      "f1": 0.621,
+      "far": 0.1001
     },
-    "0.02": {
-      "precision": 0.8512,
-      "recall": 0.0911,
-      "f1": 0.1646,
-      "far": 0.0172
-    },
-    "0.05": {
-      "precision": 0.7995,
-      "recall": 0.166,
-      "f1": 0.2749,
-      "far": 0.0448
-    },
-    "0.1": {
-      "precision": 0.8396,
-      "recall": 0.4666,
-      "f1": 0.5998,
-      "far": 0.096
-    },
-    "auto": {
-      "precision": 0.8267,
-      "recall": 0.6432,
-      "f1": 0.7235,
-      "far": 0.1451
+    "sin_ttl": {
+      "auc_validacion": 0.7863,
+      "precision": 0.814,
+      "recall": 0.4069,
+      "f1": 0.5426,
+      "far": 0.1001
     }
   },
   "umbral_elegido": {
     "criterio": "tasa de falsas alarmas en validación <= 10%",
     "objetivo_far": 0.1,
-    "umbral": 0.5062,
+    "umbral": 0.5121,
     "metricas_validacion": {
-      "tp": 5190,
-      "tn": 9340,
-      "fp": 1038,
-      "fn": 5980,
-      "precision": 0.8333,
-      "recall": 0.4646,
-      "f1": 0.5966,
-      "accuracy": 0.6743,
-      "far": 0.1,
-      "fnr": 0.5354
+      "tp": 5475,
+      "tn": 9299,
+      "fp": 1034,
+      "fn": 5649,
+      "precision": 0.8411,
+      "recall": 0.4922,
+      "f1": 0.621,
+      "accuracy": 0.6885,
+      "far": 0.1001,
+      "fnr": 0.5078
     }
   },
   "composicion_test": {
@@ -287,76 +274,76 @@
       "Worms": 44
     }
   },
-  "roc_auc_test": 0.8195,
+  "roc_auc_test": 0.8314,
   "final_test": {
-    "tp": 30679,
-    "tn": 29018,
-    "fp": 7982,
-    "fn": 14653,
-    "precision": 0.7935,
-    "recall": 0.6768,
-    "f1": 0.7305,
-    "accuracy": 0.7251,
-    "far": 0.2157,
-    "fnr": 0.3232
+    "tp": 32441,
+    "tn": 29105,
+    "fp": 7895,
+    "fn": 12891,
+    "precision": 0.8043,
+    "recall": 0.7156,
+    "f1": 0.7574,
+    "accuracy": 0.7475,
+    "far": 0.2134,
+    "fnr": 0.2844
   },
   "recall_por_categoria_test": {
     "Generic": {
       "n": 18871,
-      "recall": 0.9583
+      "recall": 0.9754
     },
     "Backdoor": {
       "n": 583,
-      "recall": 0.8628
+      "recall": 0.9074
     },
     "Analysis": {
       "n": 677,
-      "recall": 0.7696
+      "recall": 0.87
     },
     "DoS": {
       "n": 4089,
-      "recall": 0.6292
+      "recall": 0.7684
     },
     "Exploits": {
       "n": 11132,
-      "recall": 0.5703
+      "recall": 0.5819
     },
     "Worms": {
       "n": 44,
-      "recall": 0.5455
+      "recall": 0.4773
     },
     "Fuzzers": {
       "n": 6062,
-      "recall": 0.3504
+      "recall": 0.3956
     },
     "Reconnaissance": {
       "n": 3496,
-      "recall": 0.1407
+      "recall": 0.2268
     },
     "Shellcode": {
       "n": 378,
-      "recall": 0.0238
+      "recall": 0.2222
     }
   },
   "kpis_test": {
     "volumen_total_GB": 1.75,
     "flujos_analizados": 82332,
-    "flujos_anomalos": 38661,
-    "pct_flujos_anomalos": 46.96,
-    "tasa_falsas_alarmas_pct": 21.57,
+    "flujos_anomalos": 40336,
+    "pct_flujos_anomalos": 48.99,
+    "tasa_falsas_alarmas_pct": 21.34,
     "top_proto_anom": {
-      "udp": 19522,
-      "tcp": 11476,
-      "unas": 2843,
+      "udp": 21347,
+      "tcp": 9878,
+      "unas": 3367,
       "arp": 987,
-      "ospf": 658
+      "ospf": 676
     },
     "top_service_anom": {
-      "dns": 17826,
-      "unknown": 14224,
-      "http": 4806,
-      "smtp": 813,
-      "ftp": 562
+      "dns": 18136,
+      "unknown": 16259,
+      "http": 4350,
+      "smtp": 752,
+      "ftp": 500
     }
   }
 }

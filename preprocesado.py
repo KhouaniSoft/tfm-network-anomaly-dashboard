@@ -2,8 +2,9 @@
 """Preprocesado y modelo comunes para pipeline.py y app.py.
 
 Protocolo experimental:
-  1. Partición oficial de entrenamiento -> deduplicación -> división estratificada
-     en entrenamiento (80 %) y validación (20 %).
+  1. Partición oficial de entrenamiento -> deduplicación -> eliminación de flujos con
+     etiquetas contradictorias -> división estratificada en entrenamiento (80 %) y
+     validación (20 %). La partición de prueba no se modifica.
   2. Preprocesado e Isolation Forest ajustados EXCLUSIVAMENTE con el tráfico normal
      del subconjunto de entrenamiento.
   3. Umbral fijado en validación con un criterio operativo (objetivo de falsas alarmas),
@@ -23,6 +24,13 @@ UMBRAL_SESGO = 3
 FRACCION_VALIDACION = 0.20
 OBJETIVO_FAR = 0.10          # tasa máxima de falsas alarmas admitida en validación
 
+# Variables excluidas de forma explícita, con su motivo (ver análisis exploratorio, eda.py)
+EXCLUIDAS = {
+    "stcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
+    "dtcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
+    "is_ftp_login": "indicador binario con valores imposibles (2, 4); idéntico a ct_ftp_cmd (r = 1)",
+}
+
 
 def cargar(ruta="data"):
     train = pd.read_csv(f"{ruta}/UNSW_NB15_training-set.csv")
@@ -37,20 +45,36 @@ def limpiar(df):
     return df
 
 
+def quitar_contradictorias(df):
+    """Elimina los flujos con atributos idénticos y etiqueta binaria distinta: no se
+    puede saber cuál es la correcta y, en el tráfico normal, enseñarían al modelo
+    patrones de ataque como normales. Devuelve el conjunto limpio y el nº de filas quitadas."""
+    atributos = [c for c in df.columns if c not in ("label", "attack_cat")]
+    n_etiquetas = df.groupby(atributos, dropna=False)["label"].transform("nunique")
+    return df[n_etiquetas == 1].reset_index(drop=True), int((n_etiquetas > 1).sum())
+
+
 def dividir(train_limpio):
-    """Deduplica ANTES de dividir (evita copias exactas a ambos lados) y separa
-    entrenamiento/validación estratificando por familia de ataque."""
+    """Deduplica ANTES de dividir (evita copias exactas a ambos lados), elimina las
+    etiquetas contradictorias y separa entrenamiento/validación estratificando por
+    familia de ataque."""
     dedup = train_limpio.drop_duplicates().reset_index(drop=True)
+    dedup, n_contradictorias = quitar_contradictorias(dedup)
     tr, va = train_test_split(dedup, test_size=FRACCION_VALIDACION,
                               stratify=dedup["attack_cat"], random_state=SEMILLA)
-    return dedup, tr.reset_index(drop=True), va.reset_index(drop=True)
+    return dedup, tr.reset_index(drop=True), va.reset_index(drop=True), n_contradictorias
 
 
 class Preprocesado:
     """Transformaciones aprendidas solo con tráfico normal de entrenamiento."""
 
+    def __init__(self, excluir_extra=()):
+        # excluir_extra: solo para análisis de sensibilidad (p. ej., sin sttl/dttl)
+        self.excluidas = list(EXCLUIDAS) + list(excluir_extra)
+
     def ajustar(self, normales):
-        num = [c for c in normales.select_dtypes("number").columns if c != "label"]
+        num = [c for c in normales.select_dtypes("number").columns
+               if c != "label" and c not in self.excluidas]
         # Variables constantes en el tráfico normal: sin información para el perfil
         self.constantes = [c for c in num if normales[c].nunique() <= 1]
         num = [c for c in num if c not in self.constantes]
@@ -62,7 +86,9 @@ class Preprocesado:
         # Codificación por frecuencia: categorías no vistas en normal -> 0 (máxima rareza)
         self.frecuencias = {c: normales[c].value_counts(normalize=True) for c in CATEGORICAS}
         # Transformación logarítmica de las variables muy asimétricas
-        self.sesgadas = [c for c in self.numericas if abs(normales[c].skew()) > UMBRAL_SESGO]
+        # (solo variables con más de dos valores: en indicadores binarios no tiene sentido)
+        self.sesgadas = [c for c in self.numericas
+                         if normales[c].nunique() > 2 and abs(normales[c].skew()) > UMBRAL_SESGO]
         self.variables = self.numericas + [c + "_freq" for c in CATEGORICAS]
         self.escalador = RobustScaler().fit(self._matriz(normales))
         return self
@@ -99,7 +125,7 @@ def preparar_todo(ruta="data"):
     """Ejecuta el protocolo completo y devuelve todo lo necesario para evaluar."""
     train_raw, test_raw = cargar(ruta)
     train_l, test = limpiar(train_raw), limpiar(test_raw)
-    dedup, tr, va = dividir(train_l)
+    dedup, tr, va, n_contradictorias = dividir(train_l)
     normales_tr = tr[tr.label == 0]
     prep = Preprocesado().ajustar(normales_tr)
     modelo = entrenar(prep.transformar(normales_tr))
@@ -109,4 +135,4 @@ def preparar_todo(ruta="data"):
     # Modelo y umbral congelados: solo ahora se puntúa la partición de prueba
     test = test.assign(score=puntuar(modelo, prep.transformar(test)))
     return dict(train_raw=train_raw, dedup=dedup, tr=tr, va=va, test=test,
-                prep=prep, modelo=modelo, umbral=umbral)
+                prep=prep, modelo=modelo, umbral=umbral, n_contradictorias=n_contradictorias)
