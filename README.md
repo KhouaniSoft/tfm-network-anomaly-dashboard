@@ -16,25 +16,28 @@ En desarrollo. Los resultados se publicarán en este documento a medida que se o
 
 ```
 .
+├── eda.py             # Análisis exploratorio de la partición de entrenamiento
 ├── preprocesado.py    # Protocolo común: división, preprocesado, modelo y umbral
-├── pipeline.py        # Proceso completo: análisis exploratorio, evaluación, KPI y figuras
+├── pipeline.py        # Proceso completo: validación, evaluación, KPI y figuras
 ├── app.py             # Cuadro de mando interactivo (Streamlit + Plotly)
 ├── requirements.txt   # Dependencias con versiones fijadas
 └── data/              # (no incluida) Conjunto de datos UNSW-NB15 — ver instrucciones
 ```
 
-Al ejecutar `pipeline.py` se generan `resultados.json` (métricas y KPI) y las figuras del análisis.
+Al ejecutar `eda.py` se generan `eda_resultados.json` y las figuras `eda_fig*.png`; al ejecutar `pipeline.py`, `resultados.json` (métricas y KPI) y las figuras `fig*.png`.
 
 ## Requisitos
 
 - Python 3.12
 - Dependencias con versiones fijadas para garantizar la reproducibilidad:
 
-```bash
-python -m venv venv
-venv\Scripts\activate          # Windows
+```powershell
+py -3.12 -m venv venv          # crear el entorno explícitamente con Python 3.12
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+El entorno virtual no se puede mover ni copiar a otra carpeta: si se hace, hay que recrearlo.
 
 ## Datos (no incluidos en el repositorio)
 
@@ -65,10 +68,13 @@ Get-FileHash data\UNSW_NB15_training-set.csv -Algorithm SHA256
 El proceso es reproducible (semilla global `random_state = 42`):
 
 ```bash
-# 1. Proceso completo: métricas, KPI y figuras
+# 1. Análisis exploratorio (solo partición de entrenamiento)
+python eda.py
+
+# 2. Proceso completo: métricas, KPI y figuras
 python pipeline.py
 
-# 2. Cuadro de mando interactivo (http://localhost:8501)
+# 3. Cuadro de mando interactivo (http://localhost:8501)
 streamlit run app.py
 ```
 
@@ -78,7 +84,9 @@ La primera ejecución del cuadro de mando tarda unos minutos, porque entrena el 
 
 - **Proceso analítico:** CRISP-DM (comprensión del negocio y de los datos, preparación, modelado, evaluación y despliegue).
 - **Gestión del proyecto:** enfoque ágil adaptado a un trabajo individual; cada entrega parcial es una iteración.
-- **Protocolo experimental:** la partición oficial de entrenamiento se deduplica y se divide de forma estratificada en entrenamiento (80 %) y validación (20 %). La partición oficial de prueba se evalúa una sola vez.
+- **Análisis exploratorio:** se realiza solo sobre la partición oficial de entrenamiento; la de prueba no se inspecciona hasta la evaluación final.
+- **Protocolo experimental:** la partición oficial de entrenamiento se deduplica, se depura de flujos con etiquetas contradictorias y se divide de forma estratificada en entrenamiento (80 %) y validación (20 %). La partición oficial de prueba no se modifica y se reserva para la evaluación final, con el modelo y el umbral ya fijados.
+- **Variables:** se excluyen `stcpb` y `dtcpb` (números de secuencia TCP, sin información de comportamiento) e `is_ftp_login` (valores inconsistentes y redundante con `ct_ftp_cmd`); el resto de la selección se realiza por correlación sobre el tráfico normal. La dependencia del modelo respecto a `sttl`/`dttl` se mide en validación como análisis de sensibilidad.
 - **Modelo:** el preprocesado y el Isolation Forest se ajustan exclusivamente con el tráfico normal del subconjunto de entrenamiento, sin ver ataques ni etiquetas.
 - **Umbral de decisión:** fijado en validación con un criterio operativo (tasa de falsas alarmas no superior al 10 %), sin usar etiquetas de ataque. En el cuadro de mando se expone como control interactivo para explorar el compromiso entre cobertura de detección y falsas alarmas.
 
