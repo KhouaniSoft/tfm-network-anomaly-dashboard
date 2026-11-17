@@ -106,10 +106,14 @@ for c in CATEGORICAS:
 cat["service"]["sin_identificar_pct"] = pct((df["service"] == "-").mean())
 OUT["P4_categoricas"] = cat
 
-# ---------------- P5. Asimetría (solo variables no binarias) ----------------
-no_bin = [c for c in NUM if df[c].nunique() > 2]
-sesgo = df[no_bin].skew().round(2).sort_values(ascending=False)
+# ---------------- P5. Asimetría (tráfico normal deduplicado, solo variables no binarias) ----------------
+# Misma base que P6 y que el preprocesado, que ajusta las transformaciones con tráfico normal.
+# En la partición completa los ataques cambian la asimetría (p. ej., trans_depth: 167,34 frente a 2,85).
+normal = dedup[dedup.label == 0]
+no_bin = [c for c in NUM if normal[c].nunique() > 2]
+sesgo = normal[no_bin].skew().round(2).sort_values(ascending=False)
 OUT["P5_asimetria"] = {
+    "base": "tráfico normal deduplicado",
     "criterio": f"|asimetría| > {UMBRAL_SESGO}, solo variables con más de dos valores",
     "asimetria": sesgo.to_dict(),
     "candidatas_log": sesgo[sesgo.abs() > UMBRAL_SESGO].index.tolist(),
@@ -121,11 +125,10 @@ ax.barh(sesgo.index, sesgo.values, color=colores); ax.invert_yaxis()
 ax.axvline(UMBRAL_SESGO, ls="--", color="black", lw=1, label=f"Umbral = {UMBRAL_SESGO}")
 ax.set_xscale("symlog"); ax.set_xlabel("Coeficiente de asimetría (escala symlog)")
 ax.tick_params(axis="y", labelsize=6); ax.legend()
-ax.set_title("Asimetría de las variables numéricas (entrenamiento)")
+ax.set_title("Asimetría de las variables numéricas (tráfico normal deduplicado)")
 plt.tight_layout(); plt.savefig("eda_fig2_asimetria.png", bbox_inches="tight"); plt.close()
 
 # ---------------- P6. Redundancia (tráfico normal deduplicado) ----------------
-normal = dedup[dedup.label == 0]
 corr = normal[[c for c in NUM if normal[c].nunique() > 1]].corr()
 sup = corr.where(np.triu(np.ones(corr.shape), 1).astype(bool)).stack()
 pares = sup[sup.abs() > UMBRAL_CORRELACION].sort_values(key=abs, ascending=False)

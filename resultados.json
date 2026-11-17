@@ -96,8 +96,8 @@
   "preprocesado": {
     "ajustado_con": "tráfico normal del subconjunto de entrenamiento",
     "excluidas_explicitamente": {
-      "stcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
-      "dtcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
+      "stcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (sin información de comportamiento; redundante con proto)",
+      "dtcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (sin información de comportamiento; redundante con proto)",
       "is_ftp_login": "indicador binario con valores imposibles (2, 4); idéntico a ct_ftp_cmd (r = 1)"
     },
     "constantes_en_normal": [],

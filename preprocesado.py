@@ -26,8 +26,10 @@ OBJETIVO_FAR = 0.10          # tasa máxima de falsas alarmas admitida en valida
 
 # Variables excluidas de forma explícita, con su motivo (ver análisis exploratorio, eda.py)
 EXCLUIDAS = {
-    "stcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
-    "dtcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP (ruido + redundante con proto)",
+    "stcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP "
+             "(sin información de comportamiento; redundante con proto)",
+    "dtcpb": "número de secuencia TCP inicial: aleatorio en TCP y 0 fuera de TCP "
+             "(sin información de comportamiento; redundante con proto)",
     "is_ftp_login": "indicador binario con valores imposibles (2, 4); idéntico a ct_ftp_cmd (r = 1)",
 }
 
@@ -78,7 +80,8 @@ class Preprocesado:
         # Variables constantes en el tráfico normal: sin información para el perfil
         self.constantes = [c for c in num if normales[c].nunique() <= 1]
         num = [c for c in num if c not in self.constantes]
-        # Redundancia: |r| > 0,95 con una variable ya retenida
+        # Redundancia: de cada par con |r| > 0,95 se elimina la segunda variable, aunque la
+        # primera también se elimine por otro par (p. ej., dbytes, por dpkts)
         corr = normales[num].corr().abs()
         sup = corr.where(np.triu(np.ones(corr.shape), 1).astype(bool))
         self.correladas = [c for c in num if (sup[c] > UMBRAL_CORRELACION).any()]
