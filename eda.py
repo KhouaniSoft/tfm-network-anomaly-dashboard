@@ -30,7 +30,8 @@ ETIQUETAS = ["label", "attack_cat"]
 UMBRAL_SESGO = 3
 UMBRAL_CORRELACION = 0.95
 UMBRAL_RARA = 0.001          # categoría "rara": menos del 0,1 % de los flujos
-plt.rcParams.update({"figure.dpi": 150, "font.size": 9})
+plt.rcParams.update({"figure.dpi": 150, "savefig.dpi": 300, "font.size": 8})
+ANCHO = 5.9   # pulgadas: ancho de texto de la memoria (15 cm); las figuras se insertan al 100 %
 OUT = {}
 
 
@@ -72,13 +73,12 @@ OUT["P2_duplicados"] = {
     "por_familia": fam.to_dict("index"),
 }
 
-fig, ax = plt.subplots(figsize=(7, 3.4))
+fig, ax = plt.subplots(figsize=(ANCHO, 2.9))
 y = np.arange(len(fam))
 ax.barh(y - 0.2, fam["peso_original_pct"], 0.4, label="Original", color="#4472C4")
 ax.barh(y + 0.2, fam["peso_dedup_pct"], 0.4, label="Tras deduplicar", color="#ED7D31", hatch="//")
 ax.set_yticks(y); ax.set_yticklabels(fam.index); ax.invert_yaxis()
 ax.set_xlabel("Peso en la partición (%)"); ax.legend()
-ax.set_title("Efecto de la deduplicación por familia (entrenamiento)")
 plt.tight_layout(); plt.savefig("eda_fig1_duplicados.png", bbox_inches="tight"); plt.close()
 
 # ---------------- P3. Etiquetas contradictorias ----------------
@@ -128,7 +128,7 @@ OUT["P5_asimetria"] = {
     "siguen_por_encima_del_umbral_tras_log": tras_log[tras_log.abs() > UMBRAL_SESGO].index.tolist(),
 }
 
-fig, ax = plt.subplots(figsize=(7, 6.4))
+fig, ax = plt.subplots(figsize=(ANCHO, 6.6))
 posicion = np.arange(len(sesgo))
 colores = ["#C00000" if c in candidatas else "#A6A6A6" for c in sesgo.index]
 ax.barh(posicion, sesgo.values, color=colores)
@@ -136,15 +136,15 @@ ax.scatter(tras_log[candidatas].values, [sesgo.index.get_loc(c) for c in candida
            marker="D", s=14, color="black", zorder=3)
 ax.set_yticks(posicion); ax.set_yticklabels(sesgo.index); ax.invert_yaxis()
 ax.axvline(UMBRAL_SESGO, ls="--", color="black", lw=1)
-ax.set_xscale("symlog"); ax.set_xlabel("Coeficiente de asimetría (escala symlog)")
-ax.tick_params(axis="y", labelsize=6)
+ax.set_xscale("symlog"); ax.set_xlabel("Coeficiente de asimetría (escala logarítmica simétrica)")
+ax.set_xticks([-1, 0, 1, 3, 10, 30, 70]); ax.set_xticklabels(["−1", "0", "1", "3", "10", "30", "70"])
+ax.tick_params(axis="y", labelsize=7)
 ax.legend(handles=[
     Patch(color="#C00000", label=f"Candidata a log(1 + x) (|asimetría| > {UMBRAL_SESGO})"),
     Patch(color="#A6A6A6", label="Sin transformar"),
     Line2D([], [], marker="D", ls="", color="black", ms=4, label="Asimetría tras log(1 + x)"),
     Line2D([], [], ls="--", color="black", lw=1, label=f"Umbral = {UMBRAL_SESGO}")],
-    fontsize=7, loc="lower right")
-ax.set_title("Asimetría antes y después de log(1 + x) (tráfico normal deduplicado)")
+    fontsize=7, loc="lower right", framealpha=1)
 plt.tight_layout(); plt.savefig("eda_fig2_asimetria.png", bbox_inches="tight"); plt.close()
 
 # ---------------- P6. Redundancia (tráfico normal deduplicado) ----------------
@@ -173,17 +173,17 @@ for c in ["sttl", "dttl"]:
     ttl[c] = tabla.loc[principales].to_dict("index")
 OUT["P7_ttl"] = ttl
 
-fig, ax = plt.subplots(1, 2, figsize=(9, 3.2))
+fig, ax = plt.subplots(1, 2, figsize=(ANCHO, 2.5))
 for a, c in zip(ax, ["sttl", "dttl"]):
     t = pd.crosstab(df[c], df["label"], normalize="columns").mul(100)
-    t = t.loc[df[c].value_counts().head(6).index]
+    t = t.loc[df[c].value_counts().index]
+    t = t[t.max(axis=1) >= 0.5]          # valores con al menos el 0,5 % de alguna clase
     xx = np.arange(len(t))
     a.bar(xx - 0.2, t[0], 0.4, label="Normal", color="#4472C4")
     a.bar(xx + 0.2, t[1], 0.4, label="Ataque", color="#C00000", hatch="//")
     a.set_xticks(xx); a.set_xticklabels(t.index.astype(int))
     a.set_xlabel(f"Valor de {c}"); a.set_ylabel("% de la clase"); a.set_title(c)
 ax[0].legend()
-fig.suptitle("Distribución del TTL según la clase (entrenamiento)")
 plt.tight_layout(); plt.savefig("eda_fig3_ttl.png", bbox_inches="tight"); plt.close()
 
 with open("eda_resultados.json", "w", encoding="utf-8") as fh:

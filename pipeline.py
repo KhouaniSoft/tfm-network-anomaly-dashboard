@@ -18,7 +18,8 @@ from sklearn.metrics import (precision_score, recall_score, f1_score,
                              confusion_matrix, roc_auc_score, roc_curve)
 import preprocesado as pp
 
-plt.rcParams.update({"figure.dpi": 150, "font.size": 9, "font.family": "sans-serif"})
+plt.rcParams.update({"figure.dpi": 150, "savefig.dpi": 300, "font.size": 8, "font.family": "sans-serif"})
+ANCHO = 5.9   # pulgadas: ancho de texto de la memoria (15 cm); las figuras se insertan al 100 %
 OUT = {}
 
 
@@ -128,7 +129,7 @@ OUT["recall_por_categoria_test"] = dict(sorted(rc.items(), key=lambda x: -x[1]["
 
 # Figura 1: ROC y puntuaciones en prueba con el umbral congelado.
 # Las dos clases se distinguen por el tipo de línea, no solo por el color.
-fig, ax = plt.subplots(1, 2, figsize=(9, 3.4))
+fig, ax = plt.subplots(1, 2, figsize=(ANCHO, 2.7))
 fpr, tpr, _ = roc_curve(y, test.score)
 ax[0].plot(fpr, tpr, color="#C00000", lw=1.5,
            label=f"Isolation Forest (AUC = {OUT['roc_auc_test']:.3f})".replace(".", ","))
@@ -136,39 +137,45 @@ ax[0].plot([0, 1], [0, 1], "--", color="gray", lw=1, label="Clasificador aleator
 ax[0].plot(OUT["final_test"]["far"], OUT["final_test"]["recall"], "o", color="black", ms=5,
            label="Umbral fijado en validación")
 ax[0].set_xlabel("Tasa de falsas alarmas"); ax[0].set_ylabel("Cobertura (recall)"); es_x(ax[0]); es_y(ax[0])
-ax[0].set_title("Curva ROC (conjunto de prueba)"); ax[0].legend(fontsize=8, loc="lower right")
+ax[0].set_title("Curva ROC"); ax[0].legend(fontsize=7, loc="lower right", framealpha=1)
 bins = np.linspace(test.score.min(), test.score.max(), 81)
 centros = (bins[:-1] + bins[1:]) / 2
 dens_n, _ = np.histogram(test.score[y == 0], bins=bins, density=True)
 dens_a, _ = np.histogram(test.score[y == 1], bins=bins, density=True)
 ax[1].fill_between(centros, dens_n, step="mid", color="#4472C4", alpha=0.25, lw=0)
 ax[1].plot(centros, dens_n, drawstyle="steps-mid", color="#4472C4", lw=1.3, ls="-",
-           label="Normal (etiqueta real)")
+           label="Normal")
 ax[1].plot(centros, dens_a, drawstyle="steps-mid", color="#C00000", lw=1.5, ls=(0, (4, 2)),
-           label="Ataque (etiqueta real)")
+           label="Ataque")
 ax[1].axvline(umbral, color="black", ls=":", lw=1.2, label="Umbral fijado en validación")
-ax[1].set_ylim(0, max(dens_n.max(), dens_a.max()) * 1.35)
+ax[1].set_ylim(0, max(dens_n.max(), dens_a.max()) * 1.6)        # hueco para la leyenda
 ax[1].set_xlabel("Puntuación de anomalía"); ax[1].set_ylabel("Densidad"); es_x(ax[1]); es_y(ax[1])
-ax[1].set_title("Puntuaciones según la etiqueta real (prueba)")
-ax[1].legend(fontsize=8, loc="upper right", framealpha=0.95)
+ax[1].set_title("Puntuaciones según la etiqueta real")
+ax[1].legend(fontsize=7, loc="upper right", framealpha=1)
 plt.tight_layout(); plt.savefig("fig1_roc_puntuaciones.png", bbox_inches="tight"); plt.close()
 
 # Figura 2: matriz de confusión y cobertura por familia (prueba)
 f = OUT["final_test"]
-fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
+fig, ax = plt.subplots(1, 2, figsize=(ANCHO, 2.9), width_ratios=[1, 1.45])
 cm = np.array([[f["tn"], f["fp"]], [f["fn"], f["tp"]]])
-ax[0].imshow(cm, cmap="Blues")
+ax[0].imshow(cm, cmap="Blues", aspect="auto")   # ocupa el panel: títulos alineados
 for i in range(2):
     for j in range(2):
         ax[0].text(j, i, f"{cm[i, j]:,}".replace(",", "."), ha="center", va="center",
-                   color="white" if cm[i, j] > cm.max() / 2 else "black", fontsize=11)
-ax[0].set_xticks([0, 1]); ax[0].set_xticklabels(["Predicho normal", "Predicho anómalo"])
+                   color="white" if cm[i, j] > cm.max() / 2 else "black", fontsize=10)
+ax[0].set_xticks([0, 1]); ax[0].set_xticklabels(["Predicho\nnormal", "Predicho\nanómalo"])
 ax[0].set_yticks([0, 1]); ax[0].set_yticklabels(["Real: normal", "Real: ataque"])
-ax[0].set_title("Matriz de confusión (conjunto de prueba)")
+ax[0].set_title("Matriz de confusión")
 rcv = OUT["recall_por_categoria_test"]
-ax[1].barh(list(rcv.keys()), [v["recall"] for v in rcv.values()], color="#4472C4")
-ax[1].invert_yaxis(); ax[1].set_xlim(0, 1); ax[1].set_xlabel("Cobertura (recall)"); es_x(ax[1])
-ax[1].set_title("Cobertura por categoría de ataque")
+# Cada familia con su número de flujos (n): Worms tiene solo 44, su cobertura es poco estable
+familias = [f"{k} ({v['n']:,})".replace(",", ".") for k, v in rcv.items()]
+coberturas = [v["recall"] for v in rcv.values()]
+ax[1].barh(familias, coberturas, color="#4472C4")
+for i, v in enumerate(coberturas):
+    ax[1].text(v + 0.02, i, f"{v:.2f}".replace(".", ","), va="center", fontsize=7)
+ax[1].invert_yaxis(); ax[1].set_xlim(0, 1.15); ax[1].set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+ax[1].set_xlabel("Cobertura (recall)"); es_x(ax[1])
+ax[1].set_title("Cobertura por familia de ataque")
 plt.tight_layout(); plt.savefig("fig2_confusion_familias.png", bbox_inches="tight"); plt.close()
 
 # ======================= 4. KPI (prueba completa, umbral de referencia) =======================
