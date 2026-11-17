@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Preprocesado y modelo comunes para pipeline.py y app.py.
+"""Preprocesado, modelo y KPI comunes para pipeline.py, analisis.py y app.py.
 
 Protocolo experimental:
   1. Partición oficial de entrenamiento -> deduplicación -> eliminación de flujos con
@@ -119,9 +119,28 @@ def puntuar(modelo, X):
 
 
 def umbral_por_far(puntuaciones_normales_validacion, objetivo=OBJETIVO_FAR):
-    """Umbral tal que, en validación, como máximo el `objetivo` del tráfico normal
-    queda por encima (falsas alarmas). Solo usa tráfico normal."""
+    """Umbral = percentil (1 - objetivo) de la puntuación del tráfico normal de validación:
+    alrededor del `objetivo` de ese tráfico queda por encima (falsas alarmas).
+    Solo usa tráfico normal."""
     return float(np.quantile(puntuaciones_normales_validacion, 1 - objetivo))
+
+
+def kpis(df, umbral):
+    """Indicadores del apartado 2.6 de la memoria (I1-I6) sobre flujos ya puntuados.
+
+    I1-I4 no usan etiquetas (indicadores operativos); I5-I6 sí (calidad del detector).
+    Si no hay flujos (o no hay flujos de una clase), el indicador vale NaN."""
+    alerta = (df["score"] >= umbral).to_numpy()
+    normal = (df["label"] == 0).to_numpy()
+    n, a = len(df), int(alerta.sum())
+    return {
+        "flujos": n,                                                           # I1
+        "volumen_gb": float((df["sbytes"] + df["dbytes"]).sum()) / 1e9,        # I2
+        "anomalos": a,                                                         # I3
+        "pct_anomalos": a / n * 100 if n else np.nan,                          # I4
+        "tasa_falsas_alarmas_pct": alerta[normal].mean() * 100 if normal.any() else np.nan,  # I5
+        "cobertura_pct": alerta[~normal].mean() * 100 if (~normal).any() else np.nan,        # I6
+    }
 
 
 def preparar_todo(ruta="data"):
@@ -137,5 +156,5 @@ def preparar_todo(ruta="data"):
     umbral = umbral_por_far(va.loc[va.label == 0, "score"])
     # Modelo y umbral congelados: solo ahora se puntúa la partición de prueba
     test = test.assign(score=puntuar(modelo, prep.transformar(test)))
-    return dict(train_raw=train_raw, dedup=dedup, tr=tr, va=va, test=test,
+    return dict(train_raw=train_raw, test_raw=test_raw, dedup=dedup, tr=tr, va=va, test=test,
                 prep=prep, modelo=modelo, umbral=umbral, n_contradictorias=n_contradictorias)

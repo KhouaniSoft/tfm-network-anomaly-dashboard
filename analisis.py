@@ -7,7 +7,8 @@
      el AUC y la cobertura son descriptivos (la configuración no se elige con ellos).
   B. Cobertura por familia de ataque en validación frente a prueba.
   C. Duplicados en la partición de prueba y métricas sin ellos.
-  D. Tráfico normal: composición por TTL de origen (sttl) y tasa de falsas alarmas.
+  D. Tráfico normal: composición por TTL de origen (sttl), tasa de falsas alarmas y
+     tramos de tráfico normal en el orden del fichero de prueba.
 
 B, C y D se calculan con el modelo y el umbral ya congelados: son análisis
 descriptivos a posteriori y no intervienen en ninguna decisión del modelo.
@@ -126,6 +127,15 @@ OUT["D_trafico_normal_sttl"] = {
                  "far_prueba_pct": round(float(far_prueba.get(v, np.nan) * 100), 1)}
         for v in principales},
 }
+# Tramos contiguos de tráfico normal en el orden del fichero de prueba (al menos 1.000 flujos):
+# el fichero no tiene marcas de tiempo, pero el tráfico normal aparece en bloques con perfiles distintos.
+pos = np.flatnonzero(test.label.to_numpy() == 0)
+tramos = [t for t in np.split(pos, np.flatnonzero(np.diff(pos) > 1) + 1) if len(t) >= 1000]
+OUT["D_trafico_normal_sttl"]["tramos_normales_en_el_fichero"] = [
+    {"ids": f"{t[0] + 1}-{t[-1] + 1}", "flujos": int(len(t)),
+     "far_pct": round(float(test.alerta.iloc[t].mean() * 100), 1),
+     "sttl_31_pct": round(float((test.sttl.iloc[t] == 31).mean() * 100), 1)}
+    for t in tramos]
 
 with open("analisis_resultados.json", "w", encoding="utf-8") as fh:
     json.dump(OUT, fh, indent=2, ensure_ascii=False, default=str)
@@ -140,4 +150,7 @@ print(f"Cobertura: validación {b['cobertura_validacion']} | prueba {b['cobertur
       f"prueba sin duplicados {c['cobertura']}")
 print(f"Falsas alarmas: validación {dd['far_validacion']} | prueba {dd['far_prueba']} | "
       f"validación con la composición de prueba {dd['far_validacion_con_composicion_de_prueba']}")
+for t in dd["tramos_normales_en_el_fichero"]:
+    print(f"Tramo normal {t['ids']}: {t['flujos']} flujos | falsas alarmas {t['far_pct']} % | "
+          f"sttl = 31 en el {t['sttl_31_pct']} %")
 print("Detalle en analisis_resultados.json")

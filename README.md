@@ -17,14 +17,15 @@ En desarrollo. Los resultados se publicarán en este documento a medida que se o
 ```
 .
 ├── eda.py             # Análisis exploratorio de la partición de entrenamiento
-├── preprocesado.py    # Protocolo común: división, preprocesado, modelo y umbral
-├── pipeline.py        # Proceso completo: validación, evaluación, KPI y figuras
+├── preprocesado.py    # Protocolo común: división, preprocesado, modelo, umbral y KPI
+├── pipeline.py        # Protocolo: umbral en validación, evaluación única en prueba, KPI y figuras
+├── analisis.py        # Análisis complementarios: sensibilidad del modelo y análisis descriptivos de la prueba
 ├── app.py             # Cuadro de mando interactivo (Streamlit + Plotly)
 ├── requirements.txt   # Dependencias con versiones fijadas
 └── data/              # (no incluida) Conjunto de datos UNSW-NB15 — ver instrucciones
 ```
 
-Al ejecutar `eda.py` se generan `eda_resultados.json` y las figuras `eda_fig*.png`; al ejecutar `pipeline.py`, `resultados.json` (métricas y KPI) y las figuras `fig*.png`.
+Al ejecutar `eda.py` se generan `eda_resultados.json` y las figuras `eda_fig*.png`; al ejecutar `pipeline.py`, `resultados.json` (métricas y KPI) y las figuras `fig1_roc_puntuaciones.png` y `fig2_confusion_familias.png`; y al ejecutar `analisis.py`, `analisis_resultados.json`.
 
 ## Requisitos
 
@@ -71,14 +72,17 @@ El proceso es reproducible (semilla global `random_state = 42`):
 # 1. Análisis exploratorio (solo partición de entrenamiento)
 python eda.py
 
-# 2. Proceso completo: métricas, KPI y figuras
+# 2. Protocolo: umbral en validación, evaluación única en prueba, KPI y figuras
 python pipeline.py
 
-# 3. Cuadro de mando interactivo (http://localhost:8501)
+# 3. Análisis complementarios: sensibilidad del modelo y análisis descriptivos de la prueba
+python analisis.py
+
+# 4. Cuadro de mando interactivo (http://localhost:8501)
 streamlit run app.py
 ```
 
-La primera ejecución del cuadro de mando tarda unos minutos, porque entrena el modelo y puntúa el conjunto de prueba; las siguientes son inmediatas gracias a la caché de Streamlit.
+Al abrirse, el cuadro de mando tarda unos segundos, porque entrena el modelo y puntúa el conjunto de prueba; mientras la aplicación sigue abierta, los cambios de umbral y de filtros son inmediatos gracias a la caché de Streamlit.
 
 ## Metodología
 
@@ -86,9 +90,10 @@ La primera ejecución del cuadro de mando tarda unos minutos, porque entrena el 
 - **Gestión del proyecto:** enfoque ágil adaptado a un trabajo individual; cada entrega parcial es una iteración.
 - **Análisis exploratorio:** se realiza solo sobre la partición oficial de entrenamiento; la de prueba no se inspecciona hasta la evaluación final.
 - **Protocolo experimental:** la partición oficial de entrenamiento se deduplica, se depura de flujos con etiquetas contradictorias y se divide de forma estratificada en entrenamiento (80 %) y validación (20 %). La partición oficial de prueba no se modifica y se reserva para la evaluación final, con el modelo y el umbral ya fijados.
-- **Variables:** se excluyen `stcpb` y `dtcpb` (números de secuencia TCP, sin información de comportamiento) e `is_ftp_login` (valores inconsistentes y redundante con `ct_ftp_cmd`); el resto de la selección se realiza por correlación sobre el tráfico normal. La dependencia del modelo respecto a `sttl`/`dttl` se mide en validación como análisis de sensibilidad.
-- **Modelo:** el preprocesado y el Isolation Forest se ajustan exclusivamente con el tráfico normal del subconjunto de entrenamiento, sin ver ataques ni etiquetas.
-- **Umbral de decisión:** fijado en validación con un criterio operativo (tasa de falsas alarmas no superior al 10 %), sin usar etiquetas de ataque. En el cuadro de mando se expone como control interactivo para explorar el compromiso entre cobertura de detección y falsas alarmas.
+- **Variables:** se excluyen `stcpb` y `dtcpb` (números de secuencia TCP, sin información de comportamiento) e `is_ftp_login` (valores inconsistentes y redundante con `ct_ftp_cmd`); el resto de la selección se realiza por correlación sobre el tráfico normal, y las variables muy asimétricas se transforman con log(1 + x). La dependencia del modelo respecto a `sttl`/`dttl` se mide en validación como análisis de sensibilidad.
+- **Modelo:** el preprocesado y el Isolation Forest (300 árboles y submuestras de 512 instancias) se ajustan exclusivamente con el tráfico normal del subconjunto de entrenamiento, sin ver ataques ni etiquetas. La sensibilidad a esta configuración se mide en `analisis.py`.
+- **Umbral de decisión:** percentil 90 de la puntuación del tráfico normal de validación (objetivo de falsas alarmas del 10 %), sin usar etiquetas de ataque. En el cuadro de mando pueden explorarse otros umbrales con fines descriptivos; el umbral de referencia no cambia.
+- **KPI y cuadro de mando:** seis indicadores definidos en la memoria, cuatro operativos (siguen los filtros de protocolo y servicio) y dos de calidad del detector (globales, con etiquetas), organizados en tres pestañas: Supervisión, Exploración y Rendimiento del modelo.
 
 ## Alcance
 

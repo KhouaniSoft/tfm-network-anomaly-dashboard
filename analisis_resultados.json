@@ -15,7 +15,7 @@
         "auc_desv": 0.0094,
         "cobertura_media": 0.4471,
         "cobertura_desv": 0.0328,
-        "segundos_ajuste_y_puntuacion": 0.38
+        "segundos_ajuste_y_puntuacion": 0.39
       },
       {
         "arboles": 100,
@@ -35,7 +35,7 @@
         "auc_desv": 0.0135,
         "cobertura_media": 0.5091,
         "cobertura_desv": 0.0306,
-        "segundos_ajuste_y_puntuacion": 0.45
+        "segundos_ajuste_y_puntuacion": 0.49
       },
       {
         "arboles": 300,
@@ -45,7 +45,7 @@
         "auc_desv": 0.004,
         "cobertura_media": 0.4616,
         "cobertura_desv": 0.0213,
-        "segundos_ajuste_y_puntuacion": 1.08
+        "segundos_ajuste_y_puntuacion": 1.1
       },
       {
         "arboles": 300,
@@ -55,7 +55,7 @@
         "auc_desv": 0.0052,
         "cobertura_media": 0.4935,
         "cobertura_desv": 0.019,
-        "segundos_ajuste_y_puntuacion": 1.25
+        "segundos_ajuste_y_puntuacion": 1.31
       },
       {
         "arboles": 300,
@@ -65,7 +65,7 @@
         "auc_desv": 0.0048,
         "cobertura_media": 0.523,
         "cobertura_desv": 0.0091,
-        "segundos_ajuste_y_puntuacion": 1.3
+        "segundos_ajuste_y_puntuacion": 1.31
       }
     ]
   },
@@ -212,6 +212,20 @@
         "far_validacion_pct": 100.0,
         "far_prueba_pct": 100.0
       }
-    }
+    },
+    "tramos_normales_en_el_fichero": [
+      {
+        "ids": "23361-43637",
+        "flujos": 20277,
+        "far_pct": 8.6,
+        "sttl_31_pct": 82.4
+      },
+      {
+        "ids": "65853-82332",
+        "flujos": 16480,
+        "far_pct": 36.3,
+        "sttl_31_pct": 0.0
+      }
+    ]
   }
 }

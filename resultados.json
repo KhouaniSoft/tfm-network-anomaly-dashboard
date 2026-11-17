@@ -1,82 +1,4 @@
 {
-  "shape_train": [
-    175341,
-    45
-  ],
-  "nulls_train": 0,
-  "dups_train": 67601,
-  "dups_train_pct": 38.55,
-  "label_dist_train": {
-    "1": 119341,
-    "0": 56000
-  },
-  "attack_cat_train": {
-    "Normal": 56000,
-    "Generic": 40000,
-    "Exploits": 33393,
-    "Fuzzers": 18184,
-    "DoS": 12264,
-    "Reconnaissance": 10491,
-    "Analysis": 2000,
-    "Backdoor": 1746,
-    "Shellcode": 1133,
-    "Worms": 130
-  },
-  "service_dash_pct": 53.71,
-  "n_proto": 133,
-  "n_service": 13,
-  "n_state": 9,
-  "desc_numeric": {
-    "dur": {
-      "mean": 1.359,
-      "std": 6.48,
-      "min": 0.0,
-      "50%": 0.002,
-      "max": 60.0
-    },
-    "spkts": {
-      "mean": 20.299,
-      "std": 136.888,
-      "min": 1.0,
-      "50%": 2.0,
-      "max": 9616.0
-    },
-    "dpkts": {
-      "mean": 18.97,
-      "std": 110.258,
-      "min": 0.0,
-      "50%": 2.0,
-      "max": 10974.0
-    },
-    "sbytes": {
-      "mean": 8844.844,
-      "std": 174765.644,
-      "min": 28.0,
-      "50%": 430.0,
-      "max": 12965233.0
-    },
-    "dbytes": {
-      "mean": 14928.919,
-      "std": 143654.218,
-      "min": 0.0,
-      "50%": 164.0,
-      "max": 14655550.0
-    },
-    "rate": {
-      "mean": 95406.187,
-      "std": 165400.978,
-      "min": 0.0,
-      "50%": 3225.807,
-      "max": 1000000.003
-    }
-  },
-  "skew": {
-    "dur": 7.5,
-    "sbytes": 45.3,
-    "dbytes": 39.76,
-    "spkts": 40.22,
-    "dpkts": 36.76
-  },
   "protocolo": {
     "registros_tras_deduplicar_y_depurar": 107282,
     "filas_eliminadas_por_etiquetas_contradictorias": 458,
@@ -235,7 +157,7 @@
     }
   },
   "umbral_elegido": {
-    "criterio": "tasa de falsas alarmas en validación <= 10%",
+    "criterio": "percentil 90 de la puntuación del tráfico normal de validación (objetivo de falsas alarmas del 10 %)",
     "objetivo_far": 0.1,
     "umbral": 0.5121,
     "metricas_validacion": {
@@ -326,19 +248,21 @@
     }
   },
   "kpis_test": {
-    "volumen_total_GB": 1.75,
-    "flujos_analizados": 82332,
-    "flujos_anomalos": 40336,
-    "pct_flujos_anomalos": 48.99,
-    "tasa_falsas_alarmas_pct": 21.34,
-    "top_proto_anom": {
+    "base": "partición de prueba completa; umbral de referencia (P90)",
+    "I1_flujos_analizados": 82332,
+    "I2_volumen_GB": 1.75,
+    "I3_flujos_anomalos": 40336,
+    "I4_pct_flujos_anomalos": 48.99,
+    "I5_tasa_falsas_alarmas_pct": 21.34,
+    "I6_cobertura_pct": 71.56,
+    "anomalos_por_protocolo_top5": {
       "udp": 21347,
       "tcp": 9878,
       "unas": 3367,
       "arp": 987,
       "ospf": 676
     },
-    "top_service_anom": {
+    "anomalos_por_servicio_top5": {
       "dns": 18136,
       "unknown": 16259,
       "http": 4350,
