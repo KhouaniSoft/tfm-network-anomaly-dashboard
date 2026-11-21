@@ -112,4 +112,4 @@ El conjunto de datos UNSW-NB15 es propiedad de sus autores (UNSW Canberra); su u
 
 ## Autoría
 
-KhouaniSoft · TFM dirigido por David Amorós Alcaraz · UOC
+Ab.Khouani · TFM dirigido por David Amorós Alcaraz · UOC
